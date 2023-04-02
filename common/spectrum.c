@@ -1163,7 +1163,7 @@ VOID EnqueueMeasurementRep(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
@@ -1220,7 +1220,7 @@ VOID EnqueueTPCReq(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
@@ -1275,7 +1275,7 @@ VOID EnqueueTPCRep(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
@@ -1740,7 +1740,9 @@ static VOID PeerChSwAnnAction(
 {
 	CH_SW_ANN_INFO ChSwAnnInfo;
 	PFRAME_802_11 pFr = (PFRAME_802_11)Elem->Msg;
-#ifdef CONFIG_STA_SUPPORT
+//#ifdef CONFIG_STA_SUPPORT
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	UCHAR index = 0, Channel = 0, NewChannel = 0;
 	ULONG Bssidx = 0;
 #endif /* CONFIG_STA_SUPPORT */
@@ -1762,7 +1764,9 @@ static VOID PeerChSwAnnAction(
 	}
 #endif /* CONFIG_AP_SUPPORT */
 
-#ifdef CONFIG_STA_SUPPORT
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
+
 	if (pAd->OpMode == OPMODE_STA)
 	{
 		Bssidx = BssTableSearch(&pAd->ScanTab, pFr->Hdr.Addr3, pAd->CommonCfg.Channel);
@@ -2145,7 +2149,7 @@ INT Set_MeasureReq_Proc(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pAd->MacTab.Content[Aid].Addr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);

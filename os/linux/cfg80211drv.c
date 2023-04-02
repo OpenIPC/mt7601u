@@ -61,7 +61,7 @@ VOID RemainOnChannelTimeout(
 		return ;
 	}
 	
-	
+#ifdef P2P_SUPPORT
 	if ( pAd->ApCfg.ApCliTab[MAIN_MBSSID].Valid && 
 	     RTMP_CFG80211_VIF_P2P_CLI_ON(pAd) && 
             (pAd->LatchRfRegs.Channel != pAd->ApCliMlmeAux.Channel))
@@ -74,6 +74,7 @@ VOID RemainOnChannelTimeout(
 
 		DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_NULL: P2P_CLI PWR_ACTIVE ROC_END\n"));
 		CFG80211_P2pClientSendNullFrame(pAd, PWR_ACTIVE);
+
 #ifdef CONFIG_STA_SUPPORT
 		if (INFRA_ON(pAd))
 		{
@@ -85,10 +86,13 @@ VOID RemainOnChannelTimeout(
 #endif /*CONFIG_STA_SUPPORT*/
 		RTMPSetTimer(&pAd->Cfg80211RemainOnChannelDurationTimer, RESTORE_COM_CH_TIME);
 	}
-	else if (INFRA_ON(pAd)	&&
+#endif	
+
+	if (INFRA_ON(pAd)	&&
 		(pAd->MacTab.Content[BSSID_WCID].HTPhyMode.field.BW == BW_20 || 
-                pAd->CommonCfg.HtCapability.HtCapInfo.ChannelWidth == BW_20) &&
+				pAd->CommonCfg.HtCapability.HtCapInfo.ChannelWidth == BW_20) &&
 		(pAd->LatchRfRegs.Channel != pAd->CommonCfg.Channel))
+
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_ROC: ROC_Timeout INFRA_ON Channel(BW_20): %d\n", pAd->CommonCfg.Channel));
 		rtmp_bbp_set_bw(pAd,BW_20);
@@ -140,12 +144,13 @@ VOID RemainOnChannelTimeout(
 		
 }
 
+#if defined(P2P_SUPPORT)
 VOID CFG80211_P2pClientSendNullFrame(
     IN VOID                                     *pAdCB,
     IN INT                                       PwrMgmt)
 {
         PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
-	MAC_TABLE_ENTRY *pEntry;
+		MAC_TABLE_ENTRY *pEntry;
 
         pEntry = MacTableLookup(pAd, pAd->ApCliMlmeAux.Bssid);
         if (pEntry == NULL)
@@ -162,6 +167,7 @@ VOID CFG80211_P2pClientSendNullFrame(
                 OS_WAIT(20);
         }
 }
+#endif /* P2P_SUPPORT */
 
 INT CFG80211DRV_IoctlHandle(
 	IN	VOID					*pAdSrc,
@@ -663,6 +669,7 @@ BOOLEAN CFG80211DRV_PrintFrameType(
 		{
 			DBGPRINT(RT_DEBUG_ERROR, ("CFG80211_PKT: %s Deauth Frame\n", preStr));
 		}
+#ifdef P2P_SUPPORT
 		else if (ieee80211_is_action(mgmt->frame_control)) 
 		{
 			PP2P_PUBLIC_FRAME pFrame = (PP2P_PUBLIC_FRAME)pData;
@@ -757,9 +764,13 @@ BOOLEAN CFG80211DRV_PrintFrameType(
 			{
 				DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_PKT: %s ACTION Frame %d\n", preStr, pAd->LatchRfRegs.Channel));
 			}
-		}	
+		}
+#endif /* P2P_SUPPORT */ 
 		else
 		{
+			if (ieee80211_is_action(mgmt->frame_control)) 
+		           DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_PKT: %s ACTION Frame %d\n", preStr, pAd->LatchRfRegs.Channel));
+                        else
 			DBGPRINT(RT_DEBUG_ERROR, ("CFG80211_PKT: %s UNKOWN MGMT FRAME TYPE\n", preStr));
 		}
 	}
@@ -782,8 +793,9 @@ VOID CFG80211DRV_DisableApInterface(
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 
 	pAd->ApCfg.MBSSID[MAIN_MBSSID].bBcnSntReq = FALSE;
+#ifdef P2P_SUPPORT
 	pAd->P2pCfg.bSentProbeRSP = FALSE;
-  
+#endif  
 	if (pAd->CommonCfg.BBPCurrentBW == BW_40)
 	{
    		pAd->CommonCfg.BBPCurrentBW = BW_20; // skynien follow YF's suggestion add here , for GO/p2p switch 
@@ -1366,12 +1378,12 @@ BOOLEAN CFG80211DRV_OpsScanCheckStatus(
 }
 #endif
 
+#ifdef CONFIG_AP_SUPPORT
 static int CFG80211DRV_UpdateTimIE(
 	VOID                                            *pAdOrg,
 	PUCHAR 											pBeaconFrame,
 	UINT32											tim_ie_pos)
 {
-#ifdef CONFIG_AP_SUPPORT
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 	UCHAR  ID_1B, TimFirst, TimLast, *pTim, *ptr, New_Tim_Len;
 	UINT  i;
@@ -1421,10 +1433,8 @@ static int CFG80211DRV_UpdateTimIE(
 	New_Tim_Len = (2 + *(ptr+1));
 	
 	return New_Tim_Len;
-#else
-	return 0;
-#endif
-}	
+}
+#endif /* CONFIG_AP_SUPPORT */ 
 
 VOID CFG80211_UpdateBeacon(
 	VOID                                            *pAdOrg,
@@ -1511,8 +1521,7 @@ VOID CFG80211_UpdateBeacon(
 		BeaconTransmit.field.MODE = MODE_OFDM; /* Use 6Mbps */
 	else
 		BeaconTransmit.field.MODE = MODE_CCK;
-
-	BeaconTransmit.field.MCS = MCS_RATE_6;
+		BeaconTransmit.field.MCS = MCS_RATE_6;
 #ifdef CONFIG_P2P_AUTO_GO_AS_SOFTAP
 	}
 #endif
@@ -1566,6 +1575,7 @@ VOID CFG80211_UpdateBeacon(
 
 }
 
+#ifdef CONFIG_AP_SUPPORT
 VOID CFG80211_UpdateAssocRespExtraIe(
 	VOID                                            *pAdOrg,
 	UCHAR 										    *assocresp_ies,
@@ -1584,6 +1594,7 @@ VOID CFG80211_UpdateAssocRespExtraIe(
     NdisCopyMemory(pAssocRespBuf, assocresp_ies, assocresp_ies_len);
     pAd->ApCfg.MBSSID[MAIN_MBSSID].AssocRespExtraIeLen = assocresp_ies_len;
 }
+#endif /*CONFIG_AP_SUPPORT */
 
 const UCHAR *cfg80211_parsing_ie(UCHAR eid, const UCHAR *ies, UINT32 len)
 {
@@ -1597,6 +1608,25 @@ const UCHAR *cfg80211_parsing_ie(UCHAR eid, const UCHAR *ies, UINT32 len)
 		return NULL;
 	return ies;
 }
+
+#if !defined(P2P_SUPPORT)
+void AsicEnableGoSync(
+	IN PRTMP_ADAPTER pAd)
+{
+	BCN_TIME_CFG_STRUC csr;
+
+	RTMP_IO_READ32(pAd, BCN_TIME_CFG, &csr.word);
+
+	
+	/* start sending BEACON */
+	csr.field.BeaconInterval = pAd->CommonCfg.BeaconPeriod << 4; /* ASIC register in units of 1/16 TU */
+	csr.field.bTsfTicking = 1;
+	csr.field.TsfSyncMode = 3; /* sync TSF in IBSS mode */
+	csr.field.bTBTTEnable = 1;
+	csr.field.bBeaconGen = 1;
+	RTMP_IO_WRITE32(pAd, BCN_TIME_CFG, csr.word);
+}
+#endif //endof !defined(P2P_SUPPORT)
 
 /* REF: ap_connect.c ApMakeBssBeacon */
 BOOLEAN CFG80211DRV_OpsBeaconSet(
@@ -1700,7 +1730,7 @@ BOOLEAN CFG80211DRV_OpsBeaconSet(
 				pAd->ApCfg.MBSSID[MAIN_MBSSID].PhyMode = PHY_11BG_MIXED;
 		}
 
-		TxPreamble = (pAd->CommonCfg.TxPreamble == Rt802_11PreambleLong ? 0 : 1);
+		TxPreamble = (pAd->CommonCfg.TxPreamble == Rt802_11PreambleLong ? 0 : 1);	
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
 		if (pBeacon->ssid_len <= IEEE80211_MAX_SSID_LEN) {
@@ -2030,7 +2060,7 @@ BOOLEAN CFG80211DRV_OpsBeaconSet(
 		MlmeUpdateTxRates(pAd, FALSE, MIN_NET_DEVICE_FOR_P2P_GO);
 #ifdef DOT11_N_SUPPORT 
 		if (pAd->CommonCfg.PhyMode > PHY_11G)		
-		MlmeUpdateHtTxRates(pAd, MIN_NET_DEVICE_FOR_P2P_GO);
+			MlmeUpdateHtTxRates(pAd, MIN_NET_DEVICE_FOR_P2P_GO);
 #endif /* DOT11_N_SUPPORT */
 
 		/* Disable Protection first. */		
@@ -2088,8 +2118,12 @@ BOOLEAN CFG80211DRV_OpsBeaconSet(
 
 		/* Enable BSS Sync*/
 		DBGPRINT(RT_DEBUG_TRACE, ("CFG_TIM Apply BI %d\n", pAd->CommonCfg.BeaconPeriod));
+#ifdef P2P_SUPPORT
 		AsicEnableP2PGoSync(pAd);
 		pAd->P2pCfg.bSentProbeRSP = TRUE;
+#else
+                AsicEnableGoSync(pAd); //yonggang Enable CR to trigger beacon frame
+#endif		
 
 #ifdef RTMP_MAC_USB
 		/*
@@ -2214,10 +2248,12 @@ BOOLEAN CFG80211DRV_OpsLeave(
         NdisZeroMemory(pAd->MlmeAux.AutoReconnectSsid, pAd->MlmeAux.AutoReconnectSsidLen);
 
     os_alloc_mem(pAd, (UCHAR **)&pMsgElem, sizeof(MLME_QUEUE_ELEM));
-	
+
+#ifdef P2P_SUPPORT
 	if (IfType == RT_CMD_80211_IFTYPE_P2P_CLIENT)
 		COPY_MAC_ADDR(DeAuthReq.Addr, pAd->ApCliMlmeAux.Bssid);
 	else
+#endif /* P2P_SUPPORT */
 		COPY_MAC_ADDR(DeAuthReq.Addr, pAd->CommonCfg.Bssid);
 		
     DeAuthReq.Reason = REASON_DEAUTH_STA_LEAVING;
@@ -2225,10 +2261,12 @@ BOOLEAN CFG80211DRV_OpsLeave(
     NdisMoveMemory(pMsgElem->Msg, &DeAuthReq, sizeof(MLME_DEAUTH_REQ_STRUCT));
     MlmeDeauthReqAction(pAd, pMsgElem);
     os_free_mem(NULL, pMsgElem);
-	 
+
+#ifdef P2P_SUPPORT 	 
 	if (IfType == RT_CMD_80211_IFTYPE_P2P_CLIENT)
 		ApCliLinkDown(pAd, 0);
 	else
+#endif /* P2P_SUPPORT */
 		LinkDown(pAd, FALSE);
 #endif /* CONFIG_STA_SUPPORT */
 	return TRUE;
@@ -2619,10 +2657,12 @@ VOID CFG80211DRV_FragThresholdAdd(
 }
 
 
+
 VOID CFG80211DRV_P2pClientKeyAdd(
 	VOID						*pAdOrg,
 	VOID						*pData)
 {
+#ifdef APCLI_SUPPORT
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 	CMD_RTPRIV_IOCTL_80211_KEY *pKeyInfo;
 	
@@ -2718,8 +2758,9 @@ skip_reinstall_ptk:
 			}			
 		}		
 	}
+#endif		
 }
-	
+
 BOOLEAN CFG80211DRV_StaKeyAdd(
 	VOID						*pAdOrg,
 	VOID						*pData)
@@ -2771,6 +2812,7 @@ BOOLEAN CFG80211DRV_StaKeyAdd(
 		else if (pAd->StaCfg.WepStatus == Ndis802_11Encryption3Enabled)
 			IoctlSec.Alg = RT_CMD_STA_IOCTL_SECURITY_ALG_CCMP;
 		
+		IoctlSec.flags = RT_CMD_STA_IOCTL_SECURITY_ENABLED;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
 		if (pKeyInfo->bPairwise == FALSE )
 #else
@@ -2810,6 +2852,7 @@ VOID CFG80211DRV_SetP2pCliAssocIe(
 	VOID						*pData,
 	UINT                         ie_len)
 {
+#ifdef P2P_SUPPORT 
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 	hex_dump("P2PCLI=", pData, ie_len);
 	
@@ -2839,13 +2882,16 @@ VOID CFG80211DRV_SetP2pCliAssocIe(
 		}
 		pAd->ApCfg.ApCliTab[MAIN_MBSSID].WpaAssocIeLen=0;	
 	}
+#endif /* P2P_SUPPORT */
 }
+
 
 /* For P2P_CLIENT Connection Setting in AP_CLI SM */
 BOOLEAN CFG80211DRV_P2pClientConnect(
 	VOID						*pAdOrg,
 	VOID						*pData)
 {
+#ifdef P2P_SUPPORT
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 	CMD_RTPRIV_IOCTL_80211_CONNECT *pConnInfo;
 	UCHAR Connect_SSID[NDIS_802_11_LENGTH_SSID];
@@ -2875,7 +2921,7 @@ BOOLEAN CFG80211DRV_P2pClientConnect(
 	/* Set authentication mode */
 	if (pConnInfo->WpaVer == 2)
 	{
-		if (!(pConnInfo->FlgIs8021x == TRUE)) 
+		if (!pConnInfo->FlgIs8021x)
 		{
 			DBGPRINT(RT_DEBUG_TRACE,("APCLI WPA2PSK\n"));
 			Set_ApCli_AuthMode_Proc(pAd, "WPA2PSK");
@@ -2923,7 +2969,10 @@ BOOLEAN CFG80211DRV_P2pClientConnect(
 	Set_ApCli_Enable_Proc(pAd, "1");
 	CFG80211DBG(RT_DEBUG_ERROR, ("80211> APCLI CONNECTING SSID = %s\n", Connect_SSID));
 
-	return TRUE;	
+	return TRUE;
+#else
+	return FALSE;
+#endif /* P2P_SUPPORT */
 }
 
 extern INT RtmpIoctl_rt_ioctl_siwauth(
@@ -3099,6 +3148,12 @@ BOOLEAN CFG80211DRV_Connect(
 
 	/* re-set SSID */
 	pAd->FlgCfg80211Connecting = TRUE;
+
+	/* Record the requested BSSID */
+	if (pConnInfo->pBssid != NULL)
+		NdisMoveMemory(pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid, pConnInfo->pBssid, MAC_ADDR_LEN);
+	else
+		NdisZeroMemory(pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid, MAC_ADDR_LEN);
 
 	Set_SSID_Proc(pAd, (PSTRING)SSID);
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> Connecting SSID = %s\n", SSID));
@@ -3293,8 +3348,10 @@ VOID CFG80211_LostGoInform(
 	}
 	else
 		DBGPRINT(RT_DEBUG_ERROR, ("80211> BUG CFG80211_LostGoInform, BUT NetDevice not exist.\n"));
-		
-	Set_ApCli_Enable_Proc(pAd, "0");	
+
+#ifdef APCLI_SUPPORT 		
+	Set_ApCli_Enable_Proc(pAd, "0");
+#endif /* APCLI_SUPPORT */
 	
 }
 /*
@@ -3330,7 +3387,13 @@ VOID CFG80211_LostApInform(
 	//cfg80211_disconnected(pAd->net_dev, 0, NULL, 0, GFP_KERNEL);
 	if (p80211CB->pCfg80211_Wdev->sme_state == CFG80211_SME_CONNECTING)
 	{
-		   cfg80211_connect_result(pAd->net_dev, NULL, NULL, 0, NULL, 0,
+			CFG80211DBG(RT_DEBUG_TRACE, ("%s: Sending connect result (fail) to kernel"
+					" (bssid=%02x:%02x:%02x:%02x:%02x:%02x)\n",
+					__FUNCTION__, pAd->CommonCfg.Bssid[0],pAd->CommonCfg.Bssid[1],
+					pAd->CommonCfg.Bssid[2],pAd->CommonCfg.Bssid[3],pAd->CommonCfg.Bssid[4],
+					pAd->CommonCfg.Bssid[5]));
+			
+		   cfg80211_connect_result(pAd->net_dev, pAd->CommonCfg.Bssid, NULL, 0, NULL, 0,
 								   WLAN_STATUS_UNSPECIFIED_FAILURE, GFP_KERNEL);
 	}
 	else if (p80211CB->pCfg80211_Wdev->sme_state == CFG80211_SME_CONNECTED)
@@ -3381,6 +3444,7 @@ BOOLEAN CFG80211DRV_OpsRemainOnChannel(
 	CFG80211DBG(RT_DEBUG_INFO, ("%s\n", __FUNCTION__));
 	pChanInfo = (CMD_RTPRIV_IOCTL_80211_CHAN *) pData;
 
+#ifdef P2P_SUPPORT
 	/* Will be Exit the ApCli Connected Channel so send Null frame on current */
 	if ( pAd->ApCfg.ApCliTab[MAIN_MBSSID].Valid && 
 	     RTMP_CFG80211_VIF_P2P_CLI_ON(pAd) &&
@@ -3390,6 +3454,7 @@ BOOLEAN CFG80211DRV_OpsRemainOnChannel(
                 DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_NULL: APCLI PWR_SAVE ROC_START\n"));
                 CFG80211_P2pClientSendNullFrame(pAd, PWR_SAVE);
 	}
+#endif /* CONFIG_AP_SUPPORT */
 
 	if (INFRA_ON(pAd) &&
 	    ((pAd->CommonCfg.Channel != pChanInfo->ChanId) || (pAd->CommonCfg.CentralChannel != pChanInfo->ChanId)) &&
@@ -3798,6 +3863,7 @@ VOID CFG80211_Scaning(
 #endif /* CONFIG_STA_SUPPORT */
 } /* End of CFG80211_Scaning */
 
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 static void CFG80211_UpdateBssAvgRssi(
 	IN      PBSS_ENTRY                              pBssEntry)
 {
@@ -3819,8 +3885,9 @@ static void CFG80211_UpdateBssAvgRssi(
         }
 
         pBssEntry->AvgRssi = pBssEntry->AvgRssiX8 >> 3;
-
 }
+#endif
+
 
 /*
 ========================================================================
@@ -3841,7 +3908,7 @@ VOID CFG80211_ScanEnd(
 	IN VOID						*pAdCB,
 	IN BOOLEAN					FlgIsAborted)
 {
-#ifdef CONFIG_STA_SUPPORT
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
 	UINT32 index;
 	PBSS_ENTRY pBssEntry;
@@ -3956,6 +4023,7 @@ VOID CFG80211_ConnectResultInform(
 	pAd->FlgCfg80211Connecting = FALSE;
 } /* End of CFG80211_ConnectResultInform */
 
+#ifdef P2P_SUPPORT
 VOID CFG80211_P2pClientConnectResultInform(
 	IN VOID                                         *pAdCB,
         IN UCHAR                                        *pBSSID,
@@ -3972,7 +4040,7 @@ VOID CFG80211_P2pClientConnectResultInform(
 
 	pAd->FlgCfg80211Connecting = FALSE;
 }
-
+#endif /* P2P_SUPPORT */
 
 /*
 ========================================================================
@@ -4053,9 +4121,11 @@ VOID CFG80211_ApStaDel(
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("Deauthenticate all stations!\n"));
 		/* From WCID=2 */
+#ifdef P2P_SUPPORT
 		if (INFRA_ON(pAd))
 			P2PMacTableReset(pAd);
 		else
+#endif /* P2P_SUPPORT */
 			MacTableReset(pAd);	
 	}
 	else
@@ -4090,10 +4160,12 @@ INT CFG80211_setApDefaultKey(
 	IN UINT 					Data
 )
 {
+#ifdef CONFIG_AP_SUPPORT
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
 	
 	DBGPRINT(RT_DEBUG_TRACE, ("Set Ap Default Key: %d\n", Data));
     pAd->ApCfg.MBSSID[MAIN_MBSSID].DefaultKeyId = Data;
+#endif /* CONFIG_AP_SUPPORT */
 	return 0;	
 }
 
@@ -4167,9 +4239,11 @@ BOOLEAN CFG80211_checkScanResInKernelCache(
 BOOLEAN CFG80211_checkScanTable(
         IN VOID                                         *pAdCB)
 {
-    PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
+#if defined(P2P_SUPPORT)
+	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
     CFG80211_CB *pCfg80211_CB  = (CFG80211_CB *)pAd->pCfg80211_CB;
     struct wiphy *pWiphy = pCfg80211_CB->pCfg80211_Wdev->wiphy;
+
 	ULONG bss_idx = BSS_NOT_FOUND;
 	struct cfg80211_bss *bss;
 	struct ieee80211_channel *chan;
@@ -4179,6 +4253,7 @@ BOOLEAN CFG80211_checkScanTable(
 	UCHAR *ie, ieLen = 0;
 	BOOLEAN isOk = FALSE;	
 	PBSS_ENTRY pBssEntry;
+
 
         if (MAC_ADDR_EQUAL(pAd->ApCliMlmeAux.Bssid, ZERO_MAC_ADDR))
         {
@@ -4280,26 +4355,33 @@ BOOLEAN CFG80211_checkScanTable(
 		if (isOk)
 			return TRUE;
 	}
-	else
+	else	
 		printk("%s Not In Driver Scan Table\n", pAd->ApCliMlmeAux.Ssid);
+#endif 
 
 	return FALSE;
 }
 VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  const UCHAR *rsn_ie)
 {
 	//PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
+#ifdef CONFIG_AP_SUPPORT 
 	PMULTISSID_STRUCT pMbss = (PMULTISSID_STRUCT)pData;
+#endif /* CONFIG_AP_SUPPORT */ 
 	PEID_STRUCT 		 pEid;
 	PUCHAR				pTmp;
 	NDIS_802_11_ENCRYPTION_STATUS	TmpCipher;
 	NDIS_802_11_ENCRYPTION_STATUS	PairCipher;		/* Unicast cipher 1, this one has more secured cipher suite */
 	NDIS_802_11_ENCRYPTION_STATUS	PairCipherAux;	/* Unicast cipher 2 if AP announce two unicast cipher suite */
 	//NDIS_802_11_ENCRYPTION_STATUS	GroupCipher;	/* Group cipher */
+#ifdef CONFIG_AP_SUPPORT 
 	PAKM_SUITE_STRUCT				pAKM;
+#endif /* CONFIG_AP_SUPPORT */
 	USHORT							Count;
 	BOOLEAN bWPA = FALSE;
 	BOOLEAN bWPA2 = FALSE;
+#ifdef CONFIG_AP_SUPPORT
 	BOOLEAN bMix = FALSE;
+#endif /* CONFIG_AP_SUPPORT */
 
 		/* Security */
 	PairCipher	 = Ndis802_11WEPDisabled;
@@ -4308,9 +4390,11 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 	if ((wpa_ie == NULL) && (rsn_ie == NULL)) //open case
 	{
 		DBGPRINT(RT_DEBUG_TRACE,("%s:: Open/None case\n", __FUNCTION__));
+#ifdef CONFIG_AP_SUPPORT
 		pMbss->AuthMode = Ndis802_11AuthModeOpen;
 		pMbss->WepStatus = Ndis802_11WEPDisabled;
 		pMbss->WpaMixPairCipher = MIX_CIPHER_NOTUSE;
+#endif /* CONFIG_AP_SUPPORT */
 	}
 	
 	 if ((wpa_ie != NULL)) //wpapsk/tkipaes case
@@ -4319,7 +4403,9 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 		pTmp =(PUCHAR)pEid;
 		if (NdisEqualMemory(pEid->Octet, WPA_OUI, 4))
 		{
+#ifdef CONFIG_AP_SUPPORT
 			pMbss->AuthMode = Ndis802_11AuthModeOpen;
+#endif /* CONFIG_AP_SUPPORT */
 			DBGPRINT(RT_DEBUG_TRACE,("%s:: WPA case\n", __FUNCTION__));
 			bWPA = TRUE;
 			pTmp   += 11;
@@ -4327,19 +4413,27 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 				{
 					case 1:
 						DBGPRINT(RT_DEBUG_TRACE,("Group Ndis802_11GroupWEP40Enabled\n"));
+#ifdef CONFIG_AP_SUPPORT
 						pMbss->GroupKeyWepStatus  = Ndis802_11GroupWEP40Enabled;
+#endif /* CONFIG_AP_SUPPORT */
 						break;
 					case 5:
 						DBGPRINT(RT_DEBUG_TRACE,("Group Ndis802_11GroupWEP104Enabled\n"));
+#ifdef CONFIG_AP_SUPPORT
 						pMbss->GroupKeyWepStatus  = Ndis802_11GroupWEP104Enabled;
+#endif /* CONFIG_AP_SUPPORT */
 						break;
 					case 2:
 						DBGPRINT(RT_DEBUG_TRACE,("Group Ndis802_11TKIPEnable\n"));
+#ifdef CONFIG_AP_SUPPORT
 						pMbss->GroupKeyWepStatus  = Ndis802_11TKIPEnable;
+#endif /* CONFIG_AP_SUPPORT */
 						break;
 					case 4:
 						DBGPRINT(RT_DEBUG_TRACE,(" Group Ndis802_11AESEnable\n"));
+#ifdef CONFIG_AP_SUPPORT
 						pMbss->GroupKeyWepStatus  = Ndis802_11AESEnable;
+#endif /* CONFIG_AP_SUPPORT */
 						break;
 					default:
 						break;
@@ -4386,6 +4480,7 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 					pTmp++;
 					Count--;
 				}
+#ifdef CONFIG_AP_SUPPORT
 				switch (*pTmp)
 				{
 					case 1:
@@ -4399,8 +4494,10 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 					default:
 						break;
 				}
+#endif /* CONFIG_AP_SUPPORT */
 				pTmp   += 1;
 
+#ifdef CONFIG_AP_SUPPORT
 					DBGPRINT(RT_DEBUG_TRACE,("AuthMode = %s\n",GetAuthMode(pMbss->AuthMode)));
 					if (pMbss->GroupKeyWepStatus == PairCipher)
 					{
@@ -4414,11 +4511,14 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 						bMix = TRUE;
 					}
 				pMbss->RSNIE_Len[0] = wpa_ie[1];
-				NdisMoveMemory(pMbss->RSN_IE[0], wpa_ie+2, wpa_ie[1]);//copy rsn ie			
+				NdisMoveMemory(pMbss->RSN_IE[0], wpa_ie+2, wpa_ie[1]);//copy rsn ie
+#endif /* CONFIG_AP_SUPPORT */
 		}
 		else {
 			DBGPRINT(RT_DEBUG_TRACE,("%s:: Open/None case\n", __FUNCTION__));
-			pMbss->AuthMode = Ndis802_11AuthModeOpen;		
+#ifdef CONFIG_AP_SUPPORT
+			pMbss->AuthMode = Ndis802_11AuthModeOpen;
+#endif /* CONFIG_AP_SUPPORT */
 		}	
 	}
 	 
@@ -4443,6 +4543,7 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 			{	
 				DBGPRINT(RT_DEBUG_TRACE,("%s:: WPA2 case\n", __FUNCTION__));
 				bWPA2 = TRUE;
+#ifdef CONFIG_AP_SUPPORT
 				pMbss->AuthMode = Ndis802_11AuthModeOpen;
 					switch (pCipher->Type)
 					{
@@ -4465,6 +4566,7 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 						default:
 							break;
 					}
+#endif /* CONFIG_AP_SUPPORT */
 
 					/* set to correct offset for next parsing*/
 					pTmp   += sizeof(CIPHER_SUITE_STRUCT);
@@ -4517,6 +4619,7 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 					Count = (pTmp[1]<<8) + pTmp[0];
 					pTmp   += sizeof(USHORT);
 
+#ifdef CONFIG_AP_SUPPORT
 					/* 5. Get AKM ciphers*/
 					/* Parsing all AKM ciphers*/
 					while (Count > 0)
@@ -4557,15 +4660,19 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 						bMix= TRUE;
 					}
 					pMbss->RSNIE_Len[0] = rsn_ie[1];
-					NdisMoveMemory(pMbss->RSN_IE[0], rsn_ie+2, rsn_ie[1]);//copy rsn ie			
+					NdisMoveMemory(pMbss->RSN_IE[0], rsn_ie+2, rsn_ie[1]);//copy rsn ie
+#endif /* CONFIG_AP_SUPPORT */
 			}
 			else {
 				DBGPRINT(RT_DEBUG_TRACE,("%s:: Open/None case\n", __FUNCTION__));
-				pMbss->AuthMode = Ndis802_11AuthModeOpen;			
+#ifdef CONFIG_AP_SUPPORT
+				pMbss->AuthMode = Ndis802_11AuthModeOpen;
+#endif /* CONFIG_AP_SUPPORT */
 			}
 		}		
 	}
 
+#ifdef CONFIG_AP_SUPPORT
 	if (bWPA2 && bWPA)
 		{
 			if (bMix)
@@ -4585,7 +4692,8 @@ VOID CFG80211_ParseBeaconIE(VOID *pAdOrg, VOID *pData,const UCHAR *wpa_ie,  cons
 				pMbss->WpaMixPairCipher = WPA_TKIPAES_WPA2_NONE;
 				pMbss->WepStatus = Ndis802_11TKIPAESMix;
 			}
-		}	
+		}
+#endif /* CONFIG_AP_SUPPORT */
 }
 
 #ifdef CONFIG_AP_SUPPORT

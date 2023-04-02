@@ -473,7 +473,9 @@ void announce_802_3_packet(
 	IN PNDIS_PACKET pPacket,
 	IN UCHAR OpMode)
 {
+#ifdef APCLI_SUPPORT
 	RTMP_ADAPTER *pAd = (RTMP_ADAPTER *)pAdSrc;
+#endif /* APCLI_SUPPORT */
 	PNDIS_PACKET pRxPkt = pPacket;
 
 	ASSERT(pPacket);
@@ -777,16 +779,19 @@ int	RTMPSendPackets(
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (RTMP_GET_PACKET_OPMODE(pPacket))
 		{
 			APSendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1);
 			goto done;
 		}
 #endif /* P2P_SUPPORT */
+
+#ifdef CONFIG_AP_SUPPORT
 		if(!INFRA_ON(pAd) && !RTMP_CFG80211_VIF_P2P_GO_ON(pAd)&& pAd->cfg80211_ctrl.isCfgInApMode == RT_CMD_80211_IFTYPE_AP)
 			APSendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1);
 		else
+#endif /* CONFIG_AP_SUPPORT */
 			STASendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1);
 	}
 

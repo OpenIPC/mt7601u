@@ -921,7 +921,7 @@ VOID UAPSD_SP_CloseInRVDone(
 		return; /* no any station is in power save mode */
 	/* End of if */
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	FirstWcid = 2;
 #endif /* P2P_SUPPORT */
 
@@ -1937,7 +1937,7 @@ VOID UAPSD_UnTagFrame(
 	int		FirstWcid = 1;
 
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	FirstWcid = 2;
 #endif /* P2P_SUPPORT */
 	RTMP_SEM_LOCK(&pAd->UAPSDEOSPLock);

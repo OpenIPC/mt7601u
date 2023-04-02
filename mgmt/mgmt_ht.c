@@ -430,7 +430,7 @@ VOID RTMPSetHT(
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
 			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_P2P_GO);
 
@@ -467,7 +467,7 @@ VOID RTMPSetIndividualHT(
 						
 	do
 	{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
 		{								
 			UCHAR idx = apidx - MIN_NET_DEVICE_FOR_P2P_GO;
@@ -634,7 +634,7 @@ VOID RTMPSetIndividualHT(
 	/* update HT Rate setting */
 	if (pAd->OpMode == OPMODE_STA)
 	{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (apidx > BSS0)
 			MlmeUpdateHtTxRates(pAd, apidx);
 		else
@@ -687,16 +687,17 @@ VOID RTMPDisableDesiredHtInfo(
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
 		{			
 			RTMPZeroMemory(&pAd->ApCfg.MBSSID[apidx].DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
 		}
-
+#ifdef APCLI_SUPPORT
 		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
 		{			
 			RTMPZeroMemory(&pAd->ApCfg.ApCliTab[apidx].DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
 		}
+#endif/* APCLI_SUPPORT */		
 #endif /* P2P_SUPPORT */
 		RTMPZeroMemory(&pAd->StaCfg.DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
 	}

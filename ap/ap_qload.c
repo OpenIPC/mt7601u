@@ -171,7 +171,7 @@ static VOID QBSS_LoadAlarm(
 					Reason = REASON_DEAUTH_STA_LEAVING;
 					MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0,
 									pEntry->Addr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 									pAd->ApCfg.MBSSID[pEntry->apidx].Bssid,
 #endif /* P2P_SUPPORT */
 									pAd->ApCfg.MBSSID[pEntry->apidx].Bssid);				

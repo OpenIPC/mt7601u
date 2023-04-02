@@ -2076,7 +2076,7 @@ static void HTParametersHook(
 			if ((Value >= 0 && Value <= 23) || (Value == 32))
 			{
 				pAd->StaCfg.DesiredTransmitSetting.field.MCS  = Value;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 				pAd->ApCfg.MBSSID[MAIN_MBSSID].DesiredTransmitSetting.field.MCS  = Value;
 #endif /* P2P_SUPPORT */
 				pAd->StaCfg.bAutoTxRateSwitch = FALSE;
@@ -2085,7 +2085,7 @@ static void HTParametersHook(
 			else
 			{
 				pAd->StaCfg.DesiredTransmitSetting.field.MCS  = MCS_AUTO;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 				pAd->ApCfg.MBSSID[MAIN_MBSSID].DesiredTransmitSetting.field.MCS  = MCS_AUTO;
 #endif /* P2P_SUPPORT */
 				pAd->StaCfg.bAutoTxRateSwitch = TRUE;
@@ -3540,10 +3540,10 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11WEPDisabled;
 
 						/* decide the group key encryption type*/
-					if (pAd->ApCfg.MBSSID[apidx].WepStatus == Ndis802_11Encryption4Enabled)	
-						pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = Ndis802_11Encryption2Enabled;		
-					else
-						pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = pAd->ApCfg.MBSSID[apidx].WepStatus;
+						if (pAd->ApCfg.MBSSID[apidx].WepStatus == Ndis802_11Encryption4Enabled)	
+							pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = Ndis802_11Encryption2Enabled;		
+						else
+							pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = pAd->ApCfg.MBSSID[apidx].WepStatus;
 
 						/* move to ap.c::APStartUp to process*/
 	        			/*RTMPMakeRSNIE(pAd, pAd->ApCfg.MBSSID[apidx].AuthMode, pAd->ApCfg.MBSSID[apidx].WepStatus, apidx);*/

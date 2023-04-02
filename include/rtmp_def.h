@@ -448,13 +448,13 @@ enum WIFI_MODE{
 #define MAX_MESH_NUM				0
 
 #define MAX_APCLI_NUM				0
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 #undef	MAX_APCLI_NUM
 #define MAX_APCLI_NUM				1
 #endif /* APCLI_SUPPORT */
 
 #define MAX_P2P_NUM				0
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 #undef	MAX_P2P_NUM
 #define MAX_P2P_NUM				1
 #endif /* P2P_SUPPORT */
@@ -1696,6 +1696,11 @@ enum WIFI_MODE{
 #define P2P_CLI_ENTRY		2
 #endif /* P2P_SUPPORT */
 
+#ifdef SOFTAP_SUPPORT	//lily_v1
+#define SOFTAP_ENTRY		1  //lily_v1
+#endif
+
+
 #define IS_ENTRY_NONE(_x)		((_x)->EntryType == ENTRY_NONE)
 #define IS_ENTRY_CLIENT(_x)		((_x)->EntryType == ENTRY_CLIENT)
 #define IS_ENTRY_WDS(_x)		((_x)->EntryType == ENTRY_WDS)
@@ -1713,6 +1718,11 @@ enum WIFI_MODE{
 #define IS_P2P_CLI_ENTRY(_x)	((_x)->P2PEntryType == P2P_CLI_ENTRY)
 #endif /* P2P_SUPPORT */
 
+#ifdef SOFTAP_SUPPORT	//lily_v1
+#define IS_SOFTAP_ENTRY(_x)    ((_x)->SoftAPEntryType == SOFTAP_ENTRY)
+#endif
+
+
 #define SET_ENTRY_NONE(_x)		((_x)->EntryType = ENTRY_NONE)
 #define SET_ENTRY_CLIENT(_x)	((_x)->EntryType = ENTRY_CLIENT)
 #define SET_ENTRY_WDS(_x)		((_x)->EntryType = ENTRY_WDS)
@@ -1729,6 +1739,12 @@ enum WIFI_MODE{
 #define SET_P2P_CLI_ENTRY(_x)	((_x)->P2PEntryType = P2P_CLI_ENTRY)
 #define SET_P2P_ENTRY_NONE(_x)	((_x)->P2PEntryType = P2P_ENTRY_NONE)
 #endif /* P2P_SUPPORT */
+
+#ifdef SOFTAP_SUPPORT	//lily_v1
+#define SET_SOFTAP_ENTRY(_x)    ((_x)->SoftAPEntryType = SOFTAP_ENTRY)
+#endif
+
+
 #define SET_PKT_OPMODE_AP(_x)		((_x)->OpMode = OPMODE_AP)
 #define SET_PKT_OPMODE_STA(_x)		((_x)->OpMode = OPMODE_STA)
 #define IS_PKT_OPMODE_AP(_x)		((_x)->OpMode == OPMODE_AP)

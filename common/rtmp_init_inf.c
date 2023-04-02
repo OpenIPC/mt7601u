@@ -982,6 +982,7 @@ VOID RTMPDrvClose(
 		{
 			CFG80211DRV_DisableApInterface(pAd);
 			pAd->cfg80211_ctrl.isCfgInApMode = RT_CMD_80211_IFTYPE_STATION;			
+			pAd->net_dev->ieee80211_ptr->iftype =  RT_CMD_80211_IFTYPE_STATION; //for killall -9 hostapd issue
 		}
 #endif /* CONFIG_AP_SUPPORT */	
 #endif/*RT_CFG80211_SUPPORT*/
@@ -1363,6 +1364,10 @@ VOID RTMPInfClose(
 
 	}
 #endif /* CONFIG_STA_SUPPORT */
+
+#ifdef P2P_SUPPORT
+	RTMP_CFG80211_DummyP2pIf_Finalize(pAdSrc);
+#endif /* P2P_SUPPORT */
 }
 
 

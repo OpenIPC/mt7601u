@@ -334,7 +334,7 @@ VOID MlmeAssocReqAction(
 
 		DBGPRINT(RT_DEBUG_TRACE, ("ASSOC - Send ASSOC request...\n"));
 		MgtMacHeaderInit(pAd, &AssocHdr, SUBTYPE_ASSOC_REQ, 0, ApAddr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 							ApAddr);
@@ -781,7 +781,7 @@ VOID MlmeReassocReqAction(
 		DBGPRINT(RT_DEBUG_TRACE,
 			 ("ASSOC - Send RE-ASSOC request...\n"));
 		MgtMacHeaderInit(pAd, &ReassocHdr, SUBTYPE_REASSOC_REQ, 0, ApAddr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 							ApAddr);
@@ -1079,7 +1079,7 @@ VOID MlmeDisassocReqAction(
 		 ("ASSOC - Send DISASSOC request[BSSID::%02x:%02x:%02x:%02x:%02x:%02x (Reason=%d)\n",
 		  PRINT_MAC(pDisassocReq->Addr), pDisassocReq->Reason));
 	MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pDisassocReq->Addr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pDisassocReq->Addr);	/* patch peap ttls switching issue */
@@ -1436,6 +1436,7 @@ VOID AssocPostProc(
 	IN UCHAR HtCapabilityLen,
 	IN ADD_HT_INFO_IE *pAddHtInfo)
 {				/* AP might use this additional ht info IE */
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 	ULONG Idx;
 
 	pAd->MlmeAux.BssType = BSS_INFRA;
@@ -1581,6 +1582,7 @@ VOID AssocPostProc(
 				 pAd->MacTab.Content[BSSID_WCID].RSNIE_Len);
 		}
 	}
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */ 
 }
 
 /*
@@ -1797,7 +1799,7 @@ VOID Cls3errAction(
 	DBGPRINT(RT_DEBUG_TRACE,
 		 ("ASSOC - Class 3 Error, Send DISASSOC frame\n"));
 	MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pAddr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->CommonCfg.Bssid);	/* patch peap ttls switching issue */
@@ -2078,7 +2080,7 @@ BOOLEAN StaAddMacTableEntry(
 	}
 #endif /* NATIVE_WPA_SUPPLICANT_SUPPORT */
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (pAd->StaCfg.BssType == BSS_INFRA)
 		COPY_MAC_ADDR(pEntry->HdrAddr1, pAd->MlmeAux.Bssid);
 	COPY_MAC_ADDR(pEntry->HdrAddr2, pAd->CurrentAddress);

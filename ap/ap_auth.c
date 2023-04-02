@@ -139,7 +139,7 @@ static VOID APMlmeDeauthReqAction(
 				pInfo->Addr[3], pInfo->Addr[4], pInfo->Addr[5]));
            		
         MgtMacHeaderInit(pAd, &Hdr, SUBTYPE_DEAUTH, 0, pInfo->Addr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->ApCfg.MBSSID[apidx].Bssid,
 #endif /* P2P_SUPPORT */
 						pAd->ApCfg.MBSSID[apidx].Bssid);
@@ -168,7 +168,7 @@ static VOID APPeerDeauthReqAction(
     if (! PeerDeauthReqSanity(pAd, Elem->Msg, Elem->MsgLen, Addr2, &SeqNum, &Reason)) 
         return;
 
-    pEntry = NULL;
+	pEntry = NULL;
 
 	/*pEntry = MacTableLookup(pAd, Addr2); */
 	if (Elem->Wcid < MAX_LEN_OF_MAC_TABLE)
@@ -377,7 +377,7 @@ static VOID APPeerAuthReqAtIdleAction(
 			DBGPRINT(RT_DEBUG_TRACE, ("AUTH - Send AUTH seq#2 (Challenge)\n"));
 
 			MgtMacHeaderInit(pAd, &AuthHdr, SUBTYPE_AUTH, 0, 	Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 								pAd->ApCfg.MBSSID[apidx].Bssid,
 #endif /* P2P_SUPPORT */
 								pAd->ApCfg.MBSSID[apidx].Bssid);
@@ -593,7 +593,7 @@ VOID APCls2errAction(
 			PRINT_MAC(pHeader->Addr2)));
 
 	MgtMacHeaderInit(pAd, &Hdr, SUBTYPE_DEAUTH, 0, pHeader->Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pHeader->Addr1,
 #endif /* P2P_SUPPORT */
 						pHeader->Addr1);
@@ -640,7 +640,7 @@ VOID APPeerAuthSimpleRspGenAndSend(
     }
 
 	MgtMacHeaderInit(pAd, &AuthHdr, SUBTYPE_AUTH, 0, pHdr->Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pHdr->Addr1,
 #endif /* P2P_SUPPORT */
 						pHdr->Addr1);

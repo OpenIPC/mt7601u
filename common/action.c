@@ -147,7 +147,7 @@ VOID MlmeADDBAAction(
 	FRAME_ADDBA_REQ  Frame;
 	ULONG		FrameLen;
 	BA_ORI_ENTRY			*pBAEntry = NULL;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	MAC_TABLE_ENTRY *pEntry = NULL;
 #else
 #ifdef CONFIG_AP_SUPPORT
@@ -192,7 +192,7 @@ VOID MlmeADDBAAction(
 			pBAEntry =&pAd->BATable.BAOriEntry[Idx];
 		}
 		
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		/*if (VALID_WCID(pInfo->Wcid))*/
 		{
 			pEntry = &pAd->MacTab.Content[pInfo->Wcid];
@@ -315,7 +315,7 @@ VOID MlmeDELBAAction(
 	FRAME_DELBA_REQ  Frame;
 	ULONG		FrameLen;
 	FRAME_BAR	FrameBar;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	MAC_TABLE_ENTRY *pEntry = NULL;
 #else
 #ifdef CONFIG_AP_SUPPORT
@@ -353,7 +353,7 @@ VOID MlmeDELBAAction(
 
 		/* SEND BAR (Send BAR to refresh peer reordering buffer.) */
 		Idx = pAd->MacTab.Content[pInfo->Wcid].BAOriWcidArray[pInfo->TID];
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		/*if (VALID_WCID(pInfo->Wcid)) */
 		{
 			pEntry = &pAd->MacTab.Content[pInfo->Wcid];
@@ -402,7 +402,7 @@ VOID MlmeDELBAAction(
 
 		/* SEND DELBA FRAME*/
 		FrameLen = 0;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (VALID_WCID(pInfo->Wcid))
 		{
 			pEntry = &pAd->MacTab.Content[pInfo->Wcid];
@@ -1303,7 +1303,7 @@ static VOID respond_ht_information_exchange_action(
 	ULONG			FrameLen;
 	FRAME_HT_INFO	HTINFOframe, *pFrame;
 	UCHAR   		*pAddr;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	MAC_TABLE_ENTRY *pEntry = NULL;
 #else
 #ifdef CONFIG_AP_SUPPORT
@@ -1327,7 +1327,7 @@ static VOID respond_ht_information_exchange_action(
 
 	NdisZeroMemory(&HTINFOframe, sizeof(FRAME_HT_INFO));
 	/* 2-1. Prepare ADDBA Response frame.*/
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (VALID_WCID(Elem->Wcid))
 	{
 		pEntry = &pAd->MacTab.Content[Elem->Wcid];
@@ -1594,7 +1594,7 @@ VOID SendRefreshBAR(
 				
 			Sequence = pEntry->TxSeq[TID];
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			BarHeaderInit(pAd, &FrameBar, pEntry->Addr, pEntry->HdrAddr2);
 #else
 #ifdef CONFIG_AP_SUPPORT

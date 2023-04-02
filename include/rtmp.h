@@ -2515,6 +2515,10 @@ typedef struct _MAC_TABLE_ENTRY {
 	BOOLEAN isCached;
 	BOOLEAN bIAmBadAtheros;	/* Flag if this is Atheros chip that has IOT problem.  We need to turn on RTS/CTS protection. */
 
+#ifdef SOFTAP_SUPPORT //lily_v1
+		UINT32 SoftAPEntryType; //lily_v1
+#endif //lily_v1
+
 	/* WPA/WPA2 4-way database */
 	UCHAR EnqueueEapolStartTimerRunning;	/* Enqueue EAPoL-Start for triggering EAP SM */
 	RALINK_TIMER_STRUCT EnqueueStartForPSKTimer;	/* A timer which enqueue EAPoL-Start for triggering PSK SM */
@@ -2736,7 +2740,7 @@ typedef struct _MAC_TABLE_ENTRY {
 /*==================================================== */
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 	UINT MatchAPCLITabIdx;	/* indicate the index in ApCfg.ApCliTab. */
 #endif				/* APCLI_SUPPORT */
 #endif				/* CONFIG_AP_SUPPORT */
@@ -3128,7 +3132,7 @@ typedef struct _AP_ADMIN_CONFIG {
 	MULTISSID_STRUCT MBSSID[HW_BEACON_MAX_NUM];
 	ULONG IsolateInterStaTrafficBTNBSSID;
 
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 	UCHAR ApCliInfRunned;	/* Number of  ApClient interface which was running. value from 0 to MAX_APCLI_INTERFACE */
 	BOOLEAN FlgApCliIsUapsdInfoUpdated;
 	APCLI_STRUCT ApCliTab[MAX_APCLI_NUM];	/*AP-client */
@@ -3721,6 +3725,7 @@ typedef struct _CFG80211_CONTROL
 
 	/* TODO: need fix it */
 	UCHAR Cfg80211_Alpha2[2];	
+	UCHAR Cfg80211_ConnReqBssid[MAC_ADDR_LEN];
 }CFG80211_CTRL, *PCFG80211_CTRL;
 
 #endif /* RT_CFG80211_SUPPORT */
@@ -4068,7 +4073,7 @@ struct _RTMP_ADAPTER {
 	/* ----------------------------------------------- */
 	AP_ADMIN_CONFIG ApCfg;	/* user configuration when in AP mode */
 	AP_MLME_AUX ApMlmeAux;
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 		MLME_AUX				ApCliMlmeAux;			/* temporary settings used during MLME state machine */
 #endif /* APCLI_SUPPORT */
 
@@ -4078,7 +4083,7 @@ struct _RTMP_ADAPTER {
 #endif /* MBSS_SUPPORT */
 
 
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 	BOOLEAN apcli_wfd_connect;   /*flag of p2p connect is used for wfd, not wifi direct*/
 	BOOLEAN flg_apcli_init;
 #endif /* APCLI_SUPPORT */
@@ -4163,7 +4168,8 @@ struct _RTMP_ADAPTER {
 
 	/* AP needs those vaiables for site survey feature. */
 	MLME_AUX MlmeAux;	/* temporary settings used during MLME state machine */
-#if defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)
+#if (defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	BSS_TABLE ScanTab;	/* store the latest SCAN result */
 #endif /* defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT) */
 
@@ -4498,10 +4504,13 @@ struct _RTMP_ADAPTER {
 
 	UINT32 ContinueMemAllocFailCount;
 
+#if (defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	struct {
 		INT IeLen;
 		UCHAR *pIe;
 	} ProbeRespIE[MAX_LEN_OF_BSS_TABLE];
+#endif /* defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
 
 	/* purpose: We free all kernel resources when module is removed */
 	LIST_HEADER RscTimerMemList;	/* resource timers memory */
@@ -4516,6 +4525,8 @@ struct _RTMP_ADAPTER {
 
 #ifdef OS_ABL_SUPPORT
 #endif /* OS_ABL_SUPPORT */
+
+	UINT8 NewIsCfgInApMode;
 
 #ifdef P2P_SUPPORT
 	RT_P2P_CONFIG			P2pCfg;
@@ -6129,7 +6140,7 @@ VOID MgtMacHeaderInit(
 	IN UCHAR SubType, 
 	IN UCHAR ToDs, 
 	IN PUCHAR pDA, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	IN PUCHAR pSA,
 #endif /* P2P_SUPPORT */
 	IN PUCHAR pBssid);
@@ -6182,6 +6193,11 @@ ULONG BssSsidTableSearchBySSID(
 	IN BSS_TABLE *Tab,
 	IN PUCHAR	 pSsid,
 	IN UCHAR	 SsidLen);
+
+ULONG BssTableSearchByBSSID(
+	IN BSS_TABLE *Tab, 
+	IN UCHAR 	*pBssid);
+
 
 VOID BssTableDeleteEntry(
 	IN OUT  PBSS_TABLE pTab, 
@@ -9831,6 +9847,7 @@ VOID RT28xxAsicWOWDisable(
 NDIS_STATUS RTMPCheckRxError(
 	IN RTMP_ADAPTER *pAd, 
 	IN PHEADER_802_11 pHeader,
+	IN RX_BLK * pRxBlk,
 	IN RXWI_STRUC *pRxWI,
 	IN RXINFO_STRUC *pRxInfo);
 
@@ -10315,7 +10332,7 @@ void  getRate(
     OUT ULONG* fLastTxRxRate);
 
 
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 #ifdef WPA_SUPPLICANT_SUPPORT
 VOID    ApcliSendAssocIEsToWpaSupplicant( 
     IN  PRTMP_ADAPTER pAd,
@@ -10387,7 +10404,7 @@ INT RTMP_AP_IoctlPrepare(
 	IN VOID *pCB);
 #endif /* CONFIG_AP_SUPPORT */
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 BOOLEAN APHandleRxDonePacket(
 	IN RTMP_ADAPTER *pAd,
 	IN PNDIS_PACKET	pRxPacket,

@@ -403,6 +403,14 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 
 VOID RTMP_CFG80211_DummyP2pIf_Remove(
 	IN VOID 		*pAdSrc);
+
+VOID RTMP_CFG80211_DummyP2pIf_Finalize(
+	IN VOID 		*pAdSrc);
+
+#if (KERNEL_VERSION(3, 0, 0) <= LINUX_VERSION_CODE)
+extern const struct ieee80211_iface_combination *p_ra_iface_combinations_p2p;
+extern const INT ra_iface_combinations_p2p_num;
+#endif /* LINUX_VERSION_CODE 3.0.0 */
 	
 BOOLEAN RTMP_CFG80211_VIF_ON(
 	IN      VOID     *pAdSrc);

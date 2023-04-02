@@ -1,3 +1,3 @@
 config MT7601_STA
-        tristate "MT7601 STA support"
-        default m
+	tristate "MT7601 STA support"
+	default m

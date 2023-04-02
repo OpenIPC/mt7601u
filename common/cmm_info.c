@@ -168,13 +168,14 @@ INT	Set_Cmm_WirelessMode_Proc(
 		}
 #endif /* CONFIG_AP_SUPPORT */
 
-#ifdef CONFIG_STA_SUPPORT
+#if defined(CONFIG_STA_SUPPORT) 
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
+#if (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 			/* clean up previous SCAN result */
 			BssTableInit(&pAd->ScanTab);
 			pAd->StaCfg.LastScanTime = 0;
-			
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 			RTMPSetPhyMode(pAd, pAd->CommonCfg.PhyMode);
 			/* Set AdhocMode rates*/
 			if (pAd->StaCfg.BssType == BSS_ADHOC)
@@ -1823,6 +1824,7 @@ VOID	RTMPWPARemoveAllKeys(
 #ifdef PCIE_PS_SUPPORT
 	RTMP_SET_PSFLAG(pAd, fRTMP_PS_CAN_GO_SLEEP);
 #endif /* PCIE_PS_SUPPORT */
+	pAd->StaCfg.PortSecured = WPA_802_1X_PORT_NOT_SECURED;
 
 }
 #endif /* CONFIG_STA_SUPPORT */	
@@ -1993,7 +1995,7 @@ VOID RTMPSetPhyMode(
 	}
 #endif /* CONFIG_AP_SUPPORT */
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
 		UINT	apidx;
@@ -2193,10 +2195,10 @@ PSTRING GetEncryptType(CHAR enc)
     	return "TKIP";
     if(enc == Ndis802_11Encryption3Enabled)
     	return "AES";
-    if(enc == Ndis802_11Encryption4Enabled)
+	if(enc == Ndis802_11Encryption4Enabled)
     	return "TKIPAES";
 #ifdef WAPI_SUPPORT
-    if(enc == Ndis802_11EncryptionSMS4Enabled)
+	if(enc == Ndis802_11EncryptionSMS4Enabled)
     	return "SMS4";
 #endif /* WAPI_SUPPORT */
     else
@@ -2209,7 +2211,7 @@ PSTRING GetAuthMode(CHAR auth)
     	return "OPEN";
     if(auth == Ndis802_11AuthModeShared)
     	return "SHARED";
-    if(auth == Ndis802_11AuthModeAutoSwitch)
+	if(auth == Ndis802_11AuthModeAutoSwitch)
     	return "AUTOWEP";
     if(auth == Ndis802_11AuthModeWPA)
     	return "WPA";
@@ -2221,18 +2223,18 @@ PSTRING GetAuthMode(CHAR auth)
     	return "WPA2";
     if(auth == Ndis802_11AuthModeWPA2PSK)
     	return "WPA2PSK";
-    if(auth == Ndis802_11AuthModeWPA1WPA2)
+	if(auth == Ndis802_11AuthModeWPA1WPA2)
     	return "WPA1WPA2";
-    if(auth == Ndis802_11AuthModeWPA1PSKWPA2PSK)
+	if(auth == Ndis802_11AuthModeWPA1PSKWPA2PSK)
     	return "WPA1PSKWPA2PSK";
 #ifdef WAPI_SUPPORT
-    if(auth == Ndis802_11AuthModeWAICERT)
+	if(auth == Ndis802_11AuthModeWAICERT)
     	return "WAI-CERT";
-    if(auth == Ndis802_11AuthModeWAIPSK)
+	if(auth == Ndis802_11AuthModeWAIPSK)
     	return "WAI-PSK";
 #endif /* WAPI_SUPPORT */
 	
-    return "UNKNOW";
+    	return "UNKNOW";
 }		
 
 
@@ -2452,6 +2454,7 @@ VOID RTMPIoctlGetSiteSurvey(
 	IN	PRTMP_ADAPTER	pAdapter, 
 	IN	RTMP_IOCTL_INPUT_STRUCT	*wrq)
 {
+#if (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 	PSTRING		msg;
 	INT 		i=0;	 
 	INT			WaitCnt;
@@ -2542,6 +2545,7 @@ VOID RTMPIoctlGetSiteSurvey(
 
 	DBGPRINT(RT_DEBUG_TRACE, ("RTMPIoctlGetSiteSurvey - wrq->u.data.length = %d\n", wrq->u.data.length));
 	os_free_mem(NULL, (PUCHAR)msg);	
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 #endif
 
@@ -5042,7 +5046,7 @@ INT	Show_PMK_Proc(
     for (idx = 0; idx < 32; idx++)
         sprintf(pBuf+strlen(pBuf), "%02X", PMK[idx]);
 
-    return 0;
+	return 0;
 }
 
 

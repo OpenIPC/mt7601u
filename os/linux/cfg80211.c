@@ -1753,11 +1753,13 @@ static int CFG80211_OpsConnect(
 	
 	
 	/* %NULL if not specified (auto-select based on scan)*/
-	if (pSme->bssid != NULL)
-	{
-		CFG80211DBG(RT_DEBUG_ERROR,     ("80211> Connect bssid %02x:%02x:%02x:%02x:%02x:%02x\n",  PRINT_MAC(pSme->bssid)));
+	if (pSme->bssid != NULL && !MAC_ADDR_EQUAL(pSme->bssid, ZERO_MAC_ADDR)) {
+		CFG80211DBG(RT_DEBUG_OFF, ("80211> Connect bssid %02x:%02x:%02x:%02x:%02x:%02x\n",
+					   PRINT_MAC(pSme->bssid)));
 		ConnInfo.pBssid = pSme->bssid;
-	}	
+	} else
+		ConnInfo.pBssid = NULL;
+
 	
 	RTMP_DRIVER_80211_CONNECT(pAd, &ConnInfo, pNdev->ieee80211_ptr->iftype);
 #endif /*CONFIG_STA_SUPPORT*/
@@ -2476,6 +2478,7 @@ static int CFG80211_OpsStartAp(
 	MAC80211_PAD_GET(pAd, pWiphy);
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
 
+#ifdef DBG
 	if (RTDebugLevel > RT_DEBUG_TRACE) {
 		hex_dump("Beacon head", (UCHAR *)(settings->beacon.head),
 			settings->beacon.head_len);
@@ -2494,6 +2497,7 @@ static int CFG80211_OpsStartAp(
 		CFG80211DBG(RT_DEBUG_TRACE, ("80211>interval = %d\n",
 				settings->beacon_interval));
 	}
+#endif
 
 	if (settings->beacon.head_len > 0) {
 		os_alloc_mem(NULL,
@@ -2632,6 +2636,7 @@ static int CFG80211_OpsChangeBeacon(
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __func__));
 	MAC80211_PAD_GET(pAd, pWiphy);
 
+#ifdef DBG
 	if (RTDebugLevel > RT_DEBUG_TRACE) {
 		hex_dump("Beacon head", (UCHAR *)(info->head),
 			info->head_len);
@@ -2646,7 +2651,7 @@ static int CFG80211_OpsChangeBeacon(
 		hex_dump("probe_resp", (UCHAR *)(info->probe_resp),
 			info->probe_resp_len);
 	}
-
+#endif
 
 	if (info->head_len > 0) {
 		os_alloc_mem(NULL,
@@ -3327,7 +3332,7 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-	pWdev->wiphy->interface_modes |= BIT(NL80211_IFTYPE_ADHOC);
+	pWdev->wiphy->interface_modes |= BIT(NL80211_IFTYPE_STATION);
 
 #if 0//(LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
 	pWdev->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
@@ -3382,10 +3387,12 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 	pWdev->wiphy->flags |= WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
 #endif
 
+#ifdef P2P_SUPPORT
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))	
 	pWdev->wiphy->iface_combinations = (struct ieee80211_iface_combination *)(&ra_iface_combinations_p2p);
-	pWdev->wiphy->n_iface_combinations = ARRAY_SIZE(ra_iface_combinations_p2p); 
+	pWdev->wiphy->n_iface_combinations = ARRAY_SIZE(ra_iface_combinations_p2p);
 #endif
+#endif /* P2P_SUPPORT */
 
 	if (wiphy_register(pWdev->wiphy) < 0)
 	{

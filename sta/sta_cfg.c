@@ -923,7 +923,7 @@ INT Set_EncrypType_Proc(
     else
         return FALSE;
 
-    if (pAd->StaCfg.BssType == BSS_ADHOC)
+	if (pAd->StaCfg.BssType == BSS_ADHOC)
 	{
 		/* Build all corresponding channel information */
 		RTMPSetPhyMode(pAd, pAd->CommonCfg.cfg_wmode);
@@ -2947,6 +2947,11 @@ INT RTMPSetInformation(
     UCHAR wpa_supplicant_enable = 0;
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
+#if 1	
+    struct ieee80211_mgmt *mgmt;
+#endif
+
+
 #ifdef SNMP_SUPPORT	
 	TX_RTY_CFG_STRUC tx_rty_cfg;
 	ULONG ShortRetryLimit, LongRetryLimit;
@@ -4761,11 +4766,89 @@ INT RTMPSetInformation(
 			break;
 #endif /* XLINK_SUPPORT */
 
+	case OID_SEND_PROBE_FRAME:
+		{
+				PUCHAR			pOutBuffer = NULL;
+				ULONG			FrameLen = 0;
+				NDIS_STATUS NStatus;
+
+				
+				if (!MONITOR_ON(pAd))
+				{
+					Status = -EFAULT;
+					break;
+				}
+
+				DBGPRINT(RT_DEBUG_ERROR, ("[LINP]Recv::OID_SET_PROBE_FRAME!!, Length=%d\n",wrq->u.data.length));
+				if (wrq->u.data.length >= 1024)
+					Status	= -EINVAL;
+				else
+				{
+			
+					NStatus = MlmeAllocateMemory(pAd, &pOutBuffer); /*Get an unused nonpaged memory */
+					if (NStatus != NDIS_STATUS_SUCCESS) {
+						DBGPRINT(RT_DEBUG_ERROR, ("[LINP] - probe request Frame() allocate memory failed \n"));
+						Status = -EFAULT;
+						break;
+					}
+			
+					FrameLen = (ULONG)wrq->u.data.length;
+					Status = copy_from_user(pOutBuffer, wrq->u.data.pointer, wrq->u.data.length);
+
+					mgmt = (struct ieee80211_mgmt *)pOutBuffer;
+					if (ieee80211_is_probe_req(mgmt->frame_control))
+					{								
+							DBGPRINT(RT_DEBUG_ERROR, ("[LINP]Got probe request Frame()\n"));
+
+							DBGPRINT(RT_DEBUG_ERROR,("[Probe Req][SA]="
+												"%02x:%02x:%02x:%02x:%02x:%02x\n",
+												PRINT_MAC(mgmt->sa)));
+			
+							DBGPRINT(RT_DEBUG_ERROR,("[Current][Mac]="
+												"%02x:%02x:%02x:%02x:%02x:%02x\n",
+												PRINT_MAC(pAd->CurrentAddress)));
+			
+							if(NdisEqualMemory(pAd->CurrentAddress, mgmt->sa, MAC_ADDR_LEN))
+							{
+								DBGPRINT(RT_DEBUG_ERROR, ("[LINP]Got probe request Frame & Mac is same\n"));
+							}
+
+							hex_dump("[LINP]probe_req_frame", pOutBuffer, wrq->u.data.length);
+							
+							if (pAd->pTxStatusBuf != NULL)
+							{
+								os_free_mem(NULL, pAd->pTxStatusBuf);
+								pAd->pTxStatusBuf = NULL;
+							}
+			
+							os_alloc_mem(NULL, (UCHAR **)&pAd->pTxStatusBuf, FrameLen);
+							if (pAd->pTxStatusBuf != NULL)
+							{			
+								NdisCopyMemory(pAd->pTxStatusBuf, pOutBuffer, FrameLen);
+								pAd->TxStatusBufLen = FrameLen;
+							}
+							else
+							{
+								DBGPRINT(RT_DEBUG_ERROR, ("CFG_TX_STATUS: MEM ALLOC ERROR\n"));
+								return NDIS_STATUS_FAILURE;
+							}			
+							DBGPRINT(RT_DEBUG_ERROR, ("[jojo]SEND probe request Frame(). \n"));
+							
+							MiniportMMRequest(pAd, 0, pOutBuffer, FrameLen);							
+								
+					 } /* end of ieee80211_is_probe_resp */
+					
+					MlmeFreeMemory(pAd, pOutBuffer);
+								
+				}
+			
+		}
+		break;
+
 	case RT_OID_USB_POWER_SAVING:
 		if (Set_UsbPowerSaving(pAd, NULL) != TRUE)
 			Status = -EFAULT;
-
-		break;
+			break;
 
         default:
             DBGPRINT(RT_DEBUG_TRACE, ("Set::unknown IOCTL's subcmd = 0x%08x\n", cmd));
@@ -4782,6 +4865,9 @@ INT RTMPQueryInformation(
     IN  OUT RTMP_IOCTL_INPUT_STRUCT    *rq,
     IN  INT                 cmd)
 {
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
+
     RTMP_IOCTL_INPUT_STRUCT				*wrq = (RTMP_IOCTL_INPUT_STRUCT *) rq;
     NDIS_802_11_BSSID_LIST_EX           *pBssidList = NULL;
     PNDIS_WLAN_BSSID_EX                 pBss;
@@ -5016,7 +5102,7 @@ INT RTMPQueryInformation(
 			memcpy(Ssid.Ssid, pAd->CommonCfg.Ssid,	Ssid.SsidLength);
             wrq->u.data.length = sizeof(NDIS_802_11_SSID);
             Status = copy_to_user(wrq->u.data.pointer, &Ssid, wrq->u.data.length);
-            DBGPRINT(RT_DEBUG_TRACE, ("Query::OID_802_11_SSID (Len=%d, ssid=%s)\n", Ssid.SsidLength,Ssid.Ssid));
+/*            DBGPRINT(RT_DEBUG_TRACE, ("Query::OID_802_11_SSID (Len=%d, ssid=%s)\n", Ssid.SsidLength,Ssid.Ssid));*/
             break;
         case RT_OID_802_11_QUERY_LINK_STATUS:
 /*            pLinkStatus = (RT_802_11_LINK_STATUS *) kmalloc(sizeof(RT_802_11_LINK_STATUS), MEM_ALLOC_FLAG); */
@@ -6073,6 +6159,8 @@ INT RTMPQueryInformation(
             break;
     }
     return Status;
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
+	return 0;
 }
 
 
@@ -7343,12 +7431,28 @@ RtmpIoctl_rt_ioctl_siwfreq(
 		pAd->MlmeAux.Channel = pAd->CommonCfg.Channel;
 		/*save connect info*/
 		pAd->StaCfg.ConnectinfoChannel = pAd->CommonCfg.Channel;	
+
+//20170331 for monitor mode,switch channel
+#if 1
+        /* switch to the channel */ 
+        if (MONITOR_ON(pAd)) {
+            UCHAR rf_channel, rf_bw;
+            INT ext_ch;
+            /* 20MHz */
+            rf_bw = BW_20;
+            ext_ch = EXTCHA_NONE;
+            rf_channel = pAd->CommonCfg.Channel;
+
+            AsicSetChannel(pAd, rf_channel, rf_bw, ext_ch, FALSE);
+        }
+#endif
+
 	DBGPRINT(RT_DEBUG_ERROR, ("==>rt_ioctl_siwfreq::SIOCSIWFREQ(Channel=%d)\n", pAd->CommonCfg.Channel));
     }
     else
         return NDIS_STATUS_FAILURE;
 
-    return NDIS_STATUS_SUCCESS;
+	return NDIS_STATUS_SUCCESS;
 }
 
 
@@ -7675,6 +7779,8 @@ Return Value:
 Note:
 ========================================================================
 */
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 static void set_quality(
 	IN	RT_CMD_STA_IOCTL_BSS	*pSignal,
 	IN	PBSS_ENTRY				pBssEntry)
@@ -7698,7 +7804,7 @@ static void set_quality(
 	else
 		pSignal->Noise = pBssEntry->Rssi - pBssEntry->MinSNR;		
 }
-
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 
 /*
 ========================================================================
@@ -7722,6 +7828,8 @@ RtmpIoctl_rt_ioctl_giwscan(
 	IN	VOID					*pData,
 	IN	ULONG					Data)
 {
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	RT_CMD_STA_IOCTL_SCAN_TABLE *pIoctlScan = (RT_CMD_STA_IOCTL_SCAN_TABLE *)pData;
 	RT_CMD_STA_IOCTL_BSS_TABLE *pBssTable;
 	PBSS_ENTRY pBssEntry;
@@ -7788,6 +7896,8 @@ RtmpIoctl_rt_ioctl_giwscan(
 	memcpy(pIoctlScan->MainSharedKey[3], pAd->SharedKey[BSS0][3].Key, 16);
 
 	return NDIS_STATUS_SUCCESS;
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
+	return 0;
 }
 
 
@@ -8808,7 +8918,6 @@ RtmpIoctl_rt_ioctl_siwencodeext(
 	                }
 				}
                 break;
-
     		default:
     			return NDIS_STATUS_FAILURE;
 		}
@@ -9280,14 +9389,14 @@ RtmpIoctl_rt_ioctl_giwrate(
     if (rate_index >= rate_count)
         rate_index = rate_count-1;
 
-    if(rate_index >= rate_count) {
+	if(rate_index >= rate_count)
+	{
 		ASSERT(0);
 		return NDIS_STATUS_FAILURE;
-    }
+	}
+	*(ULONG *)pData = ralinkrate[rate_index] * 500000;
 
-    *(ULONG *)pData = ralinkrate[rate_index] * 500000;
-
-    return NDIS_STATUS_SUCCESS;
+	return NDIS_STATUS_SUCCESS;
 }
 
 
@@ -9899,7 +10008,7 @@ RtmpIoctl_rt_private_get_statistics(
 	else
 		sprintf(mode_str, "PBC -");
 	
-	sprintf(extra+strlen(extra), "WPS Information(Driver Auto-Connect is %s - %d):\n",
+		sprintf(extra+strlen(extra), "WPS Information(Driver Auto-Connect is %s - %d):\n",
 	                                                  pAd->StaCfg.WscControl.WscDriverAutoConnect ? "Enabled":"Disabled",
 	                                                  pAd->StaCfg.WscControl.WscDriverAutoConnect);
 	/* display pin code */
@@ -10057,6 +10166,8 @@ INT RTMP_STA_IoctlHandle(
 	IN  ULONG					Data,
 	IN  USHORT                  priv_flags)
 {
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdSrc;
 	POS_COOKIE pObj = (POS_COOKIE)pAd->OS_Cookie;
 	INT Status = NDIS_STATUS_SUCCESS;
@@ -10098,6 +10209,7 @@ INT RTMP_STA_IoctlHandle(
 			RTMPIoctlGetSiteSurvey(pAd, pRequest);
 			break;
 
+#ifdef DBG
 		case CMD_RTPRIV_IOCTL_MAC:
 			RTMPIoctlMAC(pAd, pRequest);
 			break;
@@ -10109,6 +10221,7 @@ INT RTMP_STA_IoctlHandle(
 		case CMD_RTPRIV_IOCTL_RF:
 			RTMPIoctlRF(pAd, pRequest);
 			break;
+#endif
 
 		case CMD_RTPRIV_IOCTL_BBP:
 			RTMPIoctlBbp(pAd, pRequest, pData, Data);
@@ -10195,6 +10308,8 @@ INT RTMP_STA_IoctlHandle(
 	}
 
 	return Status;
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
+	return 0;
 }
 
 #ifdef ED_MONITOR

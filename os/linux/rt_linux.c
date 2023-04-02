@@ -54,7 +54,7 @@
 #define RT_CONFIG_IF_OPMODE_ON_STA(__OpMode)
 #endif
 
-ULONG RTDebugLevel = 0;
+ULONG RTDebugLevel = RT_DEBUG_ERROR;
 ULONG RTDebugFunc = 0;
 
 #ifdef OS_ABL_FUNC_SUPPORT
@@ -3466,7 +3466,8 @@ VOID CFG80211OS_ScanEnd(
 
 	if (pCfg80211_CB->pCfg80211_ScanReq)
 	{
-		CFG80211DBG(RT_DEBUG_TRACE, ("80211> cfg80211_scan_done\n"));
+		CFG80211DBG(RT_DEBUG_ERROR, ("80211> cfg80211_scan_done\n"));
+		CFG80211DBG(RT_DEBUG_ERROR, ("[1114][Debug][CFG80211OS_ScanEnd] FlgIsAborted = %d\n",FlgIsAborted));
 		kalCfg80211ScanDone(pCfg80211_CB->pCfg80211_ScanReq, FlgIsAborted);
 		pCfg80211_CB->pCfg80211_ScanReq = NULL;
 	}
@@ -3689,6 +3690,18 @@ VOID CFG80211OS_DelSta(IN PNET_DEV pNetDev, IN const PUCHAR mac_addr)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
 	return cfg80211_del_sta(pNetDev, mac_addr, GFP_KERNEL);
 #endif
+}
+
+VOID CFG80211OS_MICFailReport(
+	PNET_DEV pNetDev,
+	const PUCHAR src_addr,
+	BOOLEAN unicast,
+	INT key_id,
+	const PUCHAR tsc)
+{
+	cfg80211_michael_mic_failure(pNetDev, src_addr,
+			(unicast ? NL80211_KEYTYPE_PAIRWISE : NL80211_KEYTYPE_GROUP),
+			key_id, tsc, GFP_ATOMIC);
 }
 
 #endif /* RT_CFG80211_SUPPORT */

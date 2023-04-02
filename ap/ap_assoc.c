@@ -852,7 +852,7 @@ VOID ap_cmm_peer_assoc_req_action(
 	if (bACLReject == TRUE)
 	{
 	    MgtMacHeaderInit(pAd, &AssocRspHdr, SubType, 0, ie_list->Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							wdev->Bssid,
 #endif /* P2P_SUPPORT */
 							wdev->Bssid);
@@ -881,7 +881,7 @@ VOID ap_cmm_peer_assoc_req_action(
 	}
 
 	MgtMacHeaderInit(pAd, &AssocRspHdr, SubType, 0, ie_list->Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						wdev->Bssid,
 #endif /* P2P_SUPPORT */
 						wdev->Bssid);
@@ -1521,8 +1521,9 @@ VOID APPeerDisassocReqAction(
 	USHORT Reason;
 	UINT16 SeqNum;		
 	MAC_TABLE_ENTRY *pEntry;
+#ifdef DOT1X_SUPPORT
 	MULTISSID_STRUCT *wdev;
-
+#endif
 	DBGPRINT(RT_DEBUG_TRACE, ("ASSOC - 1 receive DIS-ASSOC request \n"));
     if (! PeerDisassocReqSanity(pAd, Elem->Msg, Elem->MsgLen, Addr2, &SeqNum, &Reason))
         return;
@@ -1643,7 +1644,7 @@ VOID APMlmeKickOutSta(
 	    DBGPRINT(RT_DEBUG_TRACE, ("ASSOC - MLME disassociates %02x:%02x:%02x:%02x:%02x:%02x; Send DISASSOC request\n",
 	        pStaAddr[0],pStaAddr[1],pStaAddr[2], pStaAddr[3],pStaAddr[4],pStaAddr[5]));
 	    MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pStaAddr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->ApCfg.MBSSID[ApIdx].Bssid,
 #endif /* P2P_SUPPORT */
 							pAd->ApCfg.MBSSID[ApIdx].Bssid);
@@ -1719,7 +1720,7 @@ VOID APCls3errAction(
     DBGPRINT(RT_DEBUG_TRACE, ("ASSOC - Class 3 Error, Send DISASSOC frame to %02x:%02x:%02x:%02x:%02x:%02x\n",
     		PRINT_MAC(pHeader->Addr2)));
     MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pHeader->Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pHeader->Addr1,
 #endif /* P2P_SUPPORT */
 						pHeader->Addr1);

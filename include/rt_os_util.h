@@ -723,7 +723,10 @@ BOOLEAN RtmpOsCmdDisplayLenCheck(
 
 VOID    WpaSendMicFailureToWpaSupplicant(
 	IN	PNET_DEV				pNetDev,
-    IN  BOOLEAN					bUnicast);
+	IN	const PUCHAR			src_addr,
+	IN	BOOLEAN					bUnicast,
+	IN	INT						key_id,
+	IN	const PUCHAR			tsc);
 
 int wext_notify_event_assoc(
 	IN	PNET_DEV				pNetDev,
@@ -1006,6 +1009,13 @@ VOID CFG80211OS_TxStatus(IN PNET_DEV pNetDev, IN INT32 cookie, 	IN PUCHAR frame,
 VOID CFG80211OS_SendRxAuth(IN PNET_DEV pNetDev, IN const PUCHAR frame, 	IN UINT32 len);
 VOID CFG80211OS_NewSta(IN PNET_DEV pNetDev, IN const PUCHAR mac_addr, IN const PUCHAR assoc_frame, IN UINT32 assoc_len);
 VOID CFG80211OS_DelSta(IN PNET_DEV pNetDev, IN const PUCHAR mac_addr);
+
+VOID CFG80211OS_MICFailReport(
+	IN PNET_DEV		pNetDev,
+	IN const PUCHAR	src_addr,
+	IN BOOLEAN		unicast,
+	IN INT			key_id,
+	IN const PUCHAR	tsc);
 
 #endif /* RT_CFG80211_SUPPORT */
 

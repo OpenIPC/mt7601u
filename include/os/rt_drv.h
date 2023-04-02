@@ -894,7 +894,7 @@ extern ULONG RtmpOsGetUnalignedlong(
 
 
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 #define RTMP_SET_PACKET_OPMODE(_p, _flg)   (PACKET_CB(_p, 26) = _flg)
 #define RTMP_GET_PACKET_OPMODE(_p)         (PACKET_CB(_p, 26))
 #endif /* P2P_SUPPORT */

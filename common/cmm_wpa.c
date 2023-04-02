@@ -2053,7 +2053,7 @@ VOID MlmeDeAuthAction(
 
         DBGPRINT(RT_DEBUG_TRACE, ("Send DEAUTH frame with ReasonCode(%d) to %02x:%02x:%02x:%02x:%02x:%02x \n",Reason, PRINT_MAC(pEntry->Addr)));
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT) 
 	MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pEntry->Addr, pEntry->HdrAddr2, pEntry->HdrAddr3);
 #else
 #ifdef CONFIG_STA_SUPPORT
@@ -3033,6 +3033,7 @@ static VOID RTMPMakeRsnIeCap(
 #ifdef CONFIG_AP_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
 	{
+#ifdef P2P_SUPPORT	
 		if (apidx < pAd->ApCfg.BssidNum)		
 		{
 			PMULTISSID_STRUCT pMbss = &pAd->ApCfg.MBSSID[apidx];
@@ -3041,11 +3042,11 @@ static VOID RTMPMakeRsnIeCap(
         	pRSN_Cap->field.PreAuth = (pMbss->PreAuth == TRUE) ? 1 : 0;
 #endif /* DOT1X_SUPPORT */
 		}
+#endif		
 	}
 #endif /* CONFIG_AP_SUPPORT */			        
 
 #ifdef CONFIG_STA_SUPPORT
-
 #ifdef P2P_SUPPORT
 	if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
 	{
@@ -3495,7 +3496,6 @@ BOOLEAN RTMPCheckWPAframe(
     }   
     return TRUE;
 }
-
 
 #ifdef HDR_TRANS_SUPPORT
 BOOLEAN RTMPCheckWPAframe_Hdr_Trns(

@@ -1452,8 +1452,7 @@ int rtmp_ee_efuse_write16(
     }
     else
         eFuseWrite(pAd,Offset ,&data, 2);
-
-    return 0;
+	return 0;
 }
 
 
@@ -1752,6 +1751,7 @@ INT eFuse_init(RTMP_ADAPTER *pAd)
 	/* of this efuse is empty and change to the buffer mode in odrder to */
 	/*bring up interfaces successfully.*/
 	
+   DBGPRINT(RT_DEBUG_ERROR, ("Efuse FreeBlock =%d\n",EfuseFreeBlock));
 	
 	if(EfuseFreeBlock > (pAd->chipCap.EFUSE_USAGE_MAP_SIZE-5))
 	{

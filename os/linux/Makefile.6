@@ -114,7 +114,7 @@ MOD_NAME = mt$(MODULE)ap
 else
 MOD_NAME = rt$(MODULE)ap
 endif
-DAT_PATH = /etc/Wireless/RT$(CHIPSET_DAT)AP
+DAT_PATH = $(DATA_PATH)/RT$(CHIPSET_DAT)AP
 DAT_FILE_NAME = RT$(CHIPSET_DAT)AP.dat
 endif
 #endif // CONFIG_AP_SUPPORT //
@@ -126,7 +126,7 @@ MOD_NAME = mt$(MODULE)sta
 else
 MOD_NAME = rt$(MODULE)sta
 endif
-DAT_PATH = /etc/Wireless/RT$(CHIPSET_DAT)STA
+DAT_PATH = $(DATA_PATH)/RT$(CHIPSET_DAT)STA
 DAT_FILE_NAME = RT$(CHIPSET_DAT)STA.dat
 endif
 #endif // CONFIG_STA_SUPPORT //
@@ -431,6 +431,74 @@ endif
 #endif // WAPI_SUPPORT //
 
 
+#ifdef SOFTAP_SUPPORT
+ifeq ($(HAS_SOFTAP_SUPPORT),y)
+$(MOD_NAME)-objs += \
+	../../ap/ap_mbss.o\
+	../../ap/ap.o\
+	../../ap/ap_assoc.o\
+	../../ap/ap_auth.o\
+	../../ap/ap_connect.o\
+	../../ap/ap_mlme.o\
+	../../ap/ap_sanity.o\
+	../../ap/ap_sync.o\
+	../../ap/ap_wpa.o\
+	../../ap/ap_data.o\
+	../../ap/ap_autoChSel.o\
+	../../ap/ap_qload.o\
+	../../common/ap_cfg.o\
+	../../common/crypt_biginteger.o\
+	../../common/crypt_dh.o
+#	../../common/ap_cfg.o
+#	../../common/cmm_mat.o \
+#	../../common/cmm_mat_iparp.o \
+#	../../common/cmm_mat_pppoe.o \
+#	../../common/cmm_mat_ipv6.o \
+#	../../common/wsc.o\
+#	../../common/wsc_tlv.o\
+#	../../common/wsc_ufd.o\
+#	../../sta/p2pcli.o \
+#	../../sta/p2pcli_ctrl.o \
+#	../../sta/p2pcli_sync.o \
+#	../../sta/p2pcli_auth.o \
+#	../../sta/p2pcli_assoc.o \
+#	../../common/p2p_dbg.o\
+#	../../common/p2p_cfg.o\
+#	../../common/p2p.o\
+#	../../common/p2p_packet.o\
+#	../../common/p2p_action.o\
+#	../../common/p2p_table.o\
+#	../../common/p2p_ctrl.o\
+#	../../common/p2p_disc_mng.o\
+#	../../common/p2p_nego_mng.o\
+#	../../common/p2p_dbg.o\
+#	../../common/p2p.o\
+#	../../common/p2p_packet.o\
+#	../../common/p2p_action.o\
+#	../../common/p2p_table.o\
+#	../../common/p2p_ctrl.o\
+#	../../common/p2p_disc_mng.o\
+#	../../common/p2p_nego_mng.o\
+	
+
+ifeq ($(HAS_QOS_DLS_SUPPORT),y)
+$(MOD_NAME)-objs += ../../ap/ap_dls.o
+endif
+
+endif
+
+ifeq ($(HAS_SOFTAP_SUPPORT),y)
+$(MOD_NAME)-objs += \
+        ../../ap/ap_mbss_inf.o\
+        ../../common/rt_os_util.o\
+        ../../os/linux/ap_ioctl.o\
+        ../../os/linux/sta_ioctl.o\
+#       ../../os/liteos/rt_liteos.o\
+#				../../os/liteos/rt_wlan_cfg.o\
+#       ../../os/liteos/rt_main_dev.o
+endif
+#endif // SOFTAP_SUPPORT //
+
 
 #ifdef P2P_SUPPORT
 ifeq ($(OSABL),NO)
@@ -715,7 +783,6 @@ endif
 
 
 #chip releated
-
 
 
 
@@ -1041,13 +1108,11 @@ endif
 endif
 
 install:
-	rm -rf $(DAT_PATH)
-	$(shell [ ! -f /etc/Wireless ] && mkdir /etc/Wireless)
-	mkdir $(DAT_PATH)
-	cp $(RT28xx_DIR)/$(DAT_FILE_NAME) $(DAT_PATH)/.
+	echo $(LINUX_SRC_MODULE)
 	install -d $(LINUX_SRC_MODULE)
 	install -m 644 -c $(addsuffix .ko,$(MOD_NAME)) $(LINUX_SRC_MODULE)
-	/sbin/depmod -a ${shell uname -r}
+	#install -m 644 -c mtprealloc.ko $(LINUX_SRC_MODULE)
+	#depmod -a ${shell uname -r}
 
 uninstall:
 #	rm -rf $(DAT_PATH)

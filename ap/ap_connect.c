@@ -101,7 +101,7 @@ VOID APMakeBssBeacon(RTMP_ADAPTER *pAd, INT apidx)
 	PhyMode = pAd->ApCfg.MBSSID[apidx].PhyMode;
 
 	MgtMacHeaderInit(pAd, &BcnHdr, SUBTYPE_BEACON, 0, BROADCAST_ADDR, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->ApCfg.MBSSID[apidx].Bssid,
 #endif /* P2P_SUPPORT */
 						pAd->ApCfg.MBSSID[apidx].Bssid);

@@ -10,6 +10,7 @@ extern UCHAR	WILDP2PSSIDLEN;
 #endif /* P2P_SUPPORT */
 
 #ifdef SCAN_SUPPORT
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
 {
 #ifdef CONFIG_STA_SUPPORT
@@ -83,7 +84,8 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
 			DBGPRINT(RT_DEBUG_TRACE, ("%s -- Send null frame\n", __FUNCTION__));
 		}
 
-#ifdef RT_CFG80211_SUPPORT                                      
+#ifdef RT_CFG80211_SUPPORT
+#ifdef P2P_SUPPORT
         if (pAd->ApCfg.ApCliTab[MAIN_MBSSID].Valid && RTMP_CFG80211_VIF_P2P_CLI_ON(pAd))
 		{
 			OS_WAIT(20);
@@ -91,6 +93,7 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
 			RT_CFG80211_P2P_CLI_SEND_NULL_FRAME(pAd, PWR_ACTIVE);
 		}
 
+#endif /* P2P_SUPPORT */
 #endif /* RT_CFG80211_SUPPORT */
 		
 
@@ -160,9 +163,10 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
 
 	return TRUE;
 }
+#endif 
 
 
-
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 {
 	UCHAR *frm_buf = NULL;
@@ -253,7 +257,7 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 		if (OpMode == OPMODE_AP)
 		{
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 								pAd->ApCfg.MBSSID[0].Bssid,
 #endif /* P2P_SUPPORT */
 								pAd->ApCfg.MBSSID[0].Bssid);
@@ -264,7 +268,7 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 		if (OpMode == OPMODE_STA)
 		{
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 								pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 								BROADCAST_ADDR);
@@ -520,8 +524,9 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 	MlmeFreeMemory(pAd, frm_buf);
 
 	return TRUE;
-}
 
+}
+#endif 
 
 /*
 	==========================================================================
@@ -533,6 +538,8 @@ VOID ScanNextChannel(
 	IN PRTMP_ADAPTER pAd,
 	IN UCHAR OpMode) 
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	UCHAR ScanType = pAd->MlmeAux.ScanType;
 	UINT ScanTimeIn5gChannel = SHORT_CHANNEL_TIME;
 	BOOLEAN ScanPending = FALSE;
@@ -565,7 +572,7 @@ VOID ScanNextChannel(
                         UINT32 ChanId;
                         for ( ChanId = 0 ; ChanId <pAd->Cfg80211ChanListLan ; ChanId++ )
                         {
-                        
+#ifdef P2P_SUPPORT                    
                         		if ((RTMP_CFG80211_VIF_P2P_GO_ON(pAd) || 
 									 (RTMP_CFG80211_VIF_P2P_CLI_ON(pAd) && pAd->apcli_wfd_connect == TRUE)) &&
 									  pAd->CommonCfg.Channel)
@@ -594,12 +601,15 @@ VOID ScanNextChannel(
 									}
                         		}
                                 else if ( pAd->pCfg80211ChanList[ChanId] >= pAd->MlmeAux.Channel )
+#endif /* P2P_SUPPORT */
+								{
+								if ( pAd->pCfg80211ChanList[ChanId] >= pAd->MlmeAux.Channel )
                                 {
                                         pAd->MlmeAux.Channel = pAd->pCfg80211ChanList[ChanId];
                                         break;
                                 }
+								}
                         }
-
                 }
 
 #endif /* CONFIG_STA_SUPPORT */
@@ -712,19 +722,21 @@ VOID ScanNextChannel(
 		if (OpMode == OPMODE_STA)
 			pAd->Mlme.SyncMachine.CurrState = SCAN_LISTEN;
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
+#if defined(CONFIG_AP_SUPPORT) && defined(AP_SCAN_SUPPORT)
 		if (OpMode == OPMODE_AP)
 			pAd->Mlme.ApSyncMachine.CurrState = AP_SCAN_LISTEN;
 #endif /* CONFIG_AP_SUPPORT */
 	}
+#endif /* defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
 }
 
 
 BOOLEAN ScanRunning(
 		IN PRTMP_ADAPTER pAd)
 {
-	BOOLEAN	rv = FALSE;
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 
+	BOOLEAN	rv = FALSE;
 #ifdef CONFIG_STA_SUPPORT
 #ifdef P2P_SUPPORT
 		rv = ((pAd->Mlme.ApSyncMachine.CurrState == AP_SCAN_LISTEN) ? TRUE : FALSE);
@@ -750,6 +762,8 @@ BOOLEAN ScanRunning(
 #endif /* CONFIG_AP_SUPPORT */
 
 	return rv;
+#endif /* defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
+	return 0;
 }
 
 #endif /* SCAN_SUPPORT */

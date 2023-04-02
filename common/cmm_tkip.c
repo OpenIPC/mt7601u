@@ -850,11 +850,16 @@ BOOLEAN RTMPSoftDecryptTKIP(
 #ifdef CONFIG_STA_SUPPORT
 		/*RTMPReportMicError(pAd, &pWpaKey[KeyID]);	 marked by AlbertY @ 20060630 */
 #ifdef WPA_SUPPLICANT_SUPPORT
-        if (pAd->StaCfg.WpaSupplicantUP) {
-                WpaSendMicFailureToWpaSupplicant(pAd->net_dev,
-                                                (pKey->Type ==
-                                                  PAIRWISEKEY) ? TRUE :
-                                                FALSE);
+		if (pAd->StaCfg.WpaSupplicantUP) {
+			WpaSendMicFailureToWpaSupplicant(
+				pAd->net_dev,
+				pFrame->Addr2,
+				(pKey->Type == PAIRWISEKEY) ? TRUE : FALSE,
+				0,	/*key id need be retrived by IV,
+					 *actually supplicant didn't need it!
+					 */
+				NULL
+			);
         } else
 #endif /* WPA_SUPPLICANT_SUPPORT */
         RTMPReportMicError(pAd, pKey);

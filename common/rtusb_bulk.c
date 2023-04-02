@@ -769,12 +769,20 @@ USBHST_STATUS RTUSBBulkOutDataPacketComplete(URBCompleteStatus Status, purbb_t p
 	POS_COOKIE 		pObj;
 	UCHAR			BulkOutPipeId;
 	
-
+#ifdef RALINK_ATE //20190510 for ATE TX no single output issue
+	PTX_CONTEXT   pTXContext;
+	pTXContext		  = (PTX_CONTEXT)RTMP_OS_USB_CONTEXT_GET(pURB);
+#endif
 	pHTTXContext	= (PHT_TX_CONTEXT)RTMP_OS_USB_CONTEXT_GET(pURB);
 	pAd 			= pHTTXContext->pAd;
 	pObj 			= (POS_COOKIE) pAd->OS_Cookie;
 
 	/* Store BulkOut PipeId*/
+#ifdef RALINK_ATE //20190510 for ATE TX no single output issue
+	if (ATE_ON(pAd))
+		 BulkOutPipeId = pTXContext->BulkOutPipeId;
+	else
+#endif	
 	BulkOutPipeId	= pHTTXContext->BulkOutPipeId;
 	pAd->BulkOutDataOneSecCount++;
 
@@ -1212,7 +1220,7 @@ VOID	RTUSBBulkReceive(
 			RTMP_IRQ_UNLOCK(&pAd->BulkInLock, IrqFlags);
 
 			/* read RxContext, Since not */
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			RxDoneInterruptHandle(pAd);
 #else
 #ifdef CONFIG_AP_SUPPORT

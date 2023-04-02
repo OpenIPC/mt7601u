@@ -158,7 +158,7 @@ VOID APPeerDlsReqAction(
 	{
 		/* response error to source station */
 		MgtMacHeaderInit(pAd, &DlsRspHdr, SUBTYPE_ACTION, 0, SA,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->ApCfg.MBSSID[pSAEntry->apidx].Bssid,
 #endif /* P2P_SUPPORT */
 						pAd->ApCfg.MBSSID[pSAEntry->apidx].Bssid);

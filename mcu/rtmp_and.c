@@ -27,14 +27,14 @@
 */
 
 #include <asm/io.h>
-#include	"rt_config.h"
+#include "rt_config.h"
 
-
-#ifdef	USB_BULK_BUF_PREALLOC
-void *RTMPQMemAddr(int size, int index, dma_addr_t *pDmaAddr, int type);
+#ifdef USB_BULK_BUF_PREALLOC
+extern void *RTMPQMemAddr(int size, int index, dma_addr_t *pDmaAddr, int type);
 #else
-void *RTMPQMemAddr(int size, ra_dma_addr_t *pDmaAddr, int type);
+extern void *RTMPQMemAddr(int size, ra_dma_addr_t *pDmaAddr, int type);
 #endif
+
 enum BLK_TYPE {
 	BLK_TX0,
 	BLK_TX1,

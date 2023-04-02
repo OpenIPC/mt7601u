@@ -833,7 +833,7 @@ int rt_ioctl_giwscan(struct net_device *dev,
 			struct iw_point *data, char *extra)
 {
 	VOID *pAd = NULL;
-	int i=0, status = 0;
+	int i = 0, status = 0, array_index = 0;
 	PSTRING current_ev = extra, previous_ev = extra;
 	PSTRING end_buf;
 	PSTRING current_val;
@@ -1097,16 +1097,22 @@ int rt_ioctl_giwscan(struct net_device *dev,
 	{
 		memset(&iwe, 0, sizeof(iwe));
 		iwe.cmd = SIOCGIWENCODE;
-		iwe.u.data.length = 16;
 		if (pIoctlScan->pBssTable[i].FlgIsPrivacyOn)
 			iwe.u.data.flags =IW_ENCODE_ENABLED | IW_ENCODE_NOKEY;
 		else
 			iwe.u.data.flags = IW_ENCODE_DISABLED;
 
 		previous_ev = current_ev;
-		memset(&custom[0], 0, MAX_CUSTOM_LEN);
-		memcpy(custom, pIoctlScan->MainSharedKey[(iwe.u.data.flags&IW_ENCODE_INDEX) - 1], 16);
-		current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe, custom);
+		array_index = (iwe.u.data.flags & IW_ENCODE_INDEX) - 1;
+		if (array_index < 0 || array_index >= 4) {
+			iwe.u.data.length = 0;
+			current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe, NULL);
+		} else {
+			iwe.u.data.length = 16;
+			memset(&custom[0], 0, MAX_CUSTOM_LEN);
+			memcpy(custom, pIoctlScan->MainSharedKey[array_index], 16);
+			current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe, custom);
+		}
 		if (current_ev == previous_ev)
 		{
 #if WIRELESS_EXT >= 17
@@ -2815,10 +2821,44 @@ INT rt28xx_sta_ioctl(
 			}
 			break;
 		case RTPRIV_IOCTL_SET:
+#if 1  //20190508 for kernel panic issue, should use copy_from_user
+			if (wrqin->u.data.length > 1024) {
+							Status = -EINVAL;
+							DBGPRINT(RT_DEBUG_ERROR,
+											("RTPRIV_IOCTL_SET len too long %u\n",
+											  wrqin->u.data.length));
+							break;
+			}
+			do {
+							char *str = NULL;
+							size_t len = wrqin->u.data.length;
+
+							os_alloc_mem(NULL, (UCHAR **)&str, len + 1);
+							if (!str) {
+											Status = -ENOMEM;
+											DBGPRINT(RT_DEBUG_ERROR,
+															("RTPRIV_IOCTL_SET copy_from_user fail %zu\n", len + 1));
+											break;
+							}
+							if (copy_from_user(str, wrqin->u.data.pointer, len)) {
+											Status = -EFAULT;
+											DBGPRINT(RT_DEBUG_ERROR,
+															("RTPRIV_IOCTL_SET copy_from_user fail %zu\n", len));
+											os_free_mem(NULL, str);
+											break;
+							}
+							str[len] = '\0';
+							Status = rt_ioctl_setparam(net_dev, NULL, NULL, str);
+							os_free_mem(NULL, str);
+							str = NULL;
+			} while (0);
+			break;
+#else
 			if(access_ok(VERIFY_READ, wrqin->u.data.pointer, wrqin->u.data.length) != TRUE)   
 					break;
 			return rt_ioctl_setparam(net_dev, NULL, NULL, wrqin->u.data.pointer);
 			break;
+#endif			
 		case RTPRIV_IOCTL_GSITESURVEY:
 			RTMP_STA_IoctlHandle(pAd, wrq, CMD_RTPRIV_IOCTL_SITESURVEY_GET, 0,
 								NULL, 0, RT_DEV_PRIV_FLAGS_GET(net_dev));

@@ -224,7 +224,7 @@ VOID PeerAuthRspAtSeq2Action(
 						 ("AUTH - Send AUTH request seq#3...\n"));
 					MgtMacHeaderInit(pAd, &AuthHdr,
 							 SUBTYPE_AUTH, 0, Addr2,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 							 pAd->MlmeAux.Bssid);
@@ -403,7 +403,7 @@ VOID MlmeDeauthReqAction(
 		 ("AUTH - Send DE-AUTH request (Reason=%d)...\n",
 		  pInfo->Reason));
 	MgtMacHeaderInit(pAd, &DeauthHdr, SUBTYPE_DEAUTH, 0, pInfo->Addr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->MlmeAux.Bssid);
@@ -492,7 +492,7 @@ VOID Cls2errAction(
 	DBGPRINT(RT_DEBUG_TRACE,
 		 ("AUTH - Class 2 error, Send DEAUTH frame...\n"));
 	MgtMacHeaderInit(pAd, &DeauthHdr, SUBTYPE_DEAUTH, 0, pAddr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->MlmeAux.Bssid);
@@ -559,7 +559,7 @@ BOOLEAN AUTH_ReqSend(
 			 ("%s - Send AUTH request seq#1 (Alg=%d)...\n", pSMName,
 			  Alg));
 		MgtMacHeaderInit(pAd, &AuthHdr, SUBTYPE_AUTH, 0, Addr,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 							pAd->MlmeAux.Bssid);

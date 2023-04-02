@@ -8885,7 +8885,7 @@ INT	Set_WscV2Support_Proc(
 	POS_COOKIE	pObj = (POS_COOKIE) pAd->OS_Cookie;
 	UCHAR		bEnable = (UCHAR)simple_strtol(arg, 0, 10);
 	PWSC_CTRL	pWscControl = &pAd->ApCfg.MBSSID[pObj->ioctl_if].WscControl;
-//	INT 		IsAPConfigured = pWscControl->WscConfStatus;		
+	INT 		IsAPConfigured = pWscControl->WscConfStatus;		
 
 	if (bEnable == 0)
 		pWscControl->WscV2Info.bEnableWpsV2 = FALSE;

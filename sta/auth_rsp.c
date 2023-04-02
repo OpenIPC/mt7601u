@@ -90,7 +90,7 @@ VOID PeerAuthSimpleRspGenAndSend(
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Send AUTH response (seq#2)...\n"));
 	MgtMacHeaderInit(pAd, &AuthHdr, SUBTYPE_AUTH, 0, pHdr80211->Addr2,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 						pAd->MlmeAux.Bssid);
@@ -168,6 +168,10 @@ VOID PeerDeauthAction(
 				pAd->StaCfg.bLostAp = TRUE;
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
+#ifdef RT_CFG80211_SUPPORT
+     /* We should let wpa_supplicant do the roaming */
+
+#else/* !RT_CFG80211_SUPPORT */
 			/*
 			   Some customer would set AP1 & AP2 same SSID, AuthMode & EncrypType but different WPAPSK,
 			   therefore we need to do iterate here.
@@ -184,11 +188,14 @@ VOID PeerDeauthAction(
 #endif /* WSC_STA_SUPPORT */
 			    )
 				bDoIterate = TRUE;
+#endif  /* RT_CFG80211_SUPPORT */
 
 			LinkDown(pAd, TRUE);
 
 			if (bDoIterate) {
 				pAd->MlmeAux.BssIdx++;
+				
+				DBGPRINT(RT_DEBUG_ERROR, ("@%s(%d) Before implement IterateOnBssTab.\n",__func__,__LINE__));
 				IterateOnBssTab(pAd);
 			}
 

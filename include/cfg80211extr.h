@@ -332,7 +332,7 @@ VOID CFG80211DRV_SetP2pCliAssocIe(
 VOID CFG80211DRV_P2pClientKeyAdd(
 	VOID						*pAdOrg,
 	VOID						*pData);
-	
+
 VOID RemainOnChannelTimeout(
 	IN PVOID SystemSpecific1,
 	IN PVOID FunctionContext,

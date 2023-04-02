@@ -12,17 +12,15 @@
  * written consent of Ralink Technology, Inc. is obtained.
  ***************************************************************************/
 
-
 #ifdef RTMP_MAC_USB
+#include "rt_config.h"
 
-
-#include	"rt_config.h"
-
-#ifdef	USB_BULK_BUF_PREALLOC
-void *RTMPQMemAddr(int size, int index, dma_addr_t *pDmaAddr, int type);
+#ifdef USB_BULK_BUF_PREALLOC
+extern void *RTMPQMemAddr(int size, int index, dma_addr_t *pDmaAddr, int type);
 #else
-void *RTMPQMemAddr(int size, ra_dma_addr_t *pDmaAddr, int type);
+extern void *RTMPQMemAddr(int size, ra_dma_addr_t *pDmaAddr, int type);
 #endif
+
 enum BLK_TYPE {
 	BLK_TX0,
 	BLK_TX1,
@@ -660,7 +658,7 @@ NDIS_STATUS	RTMPAllocTxRxRingMemory(
 			/*Allocate URB and bulk buffer*/
 			for(ringidx=0;ringidx < BUF_ALIGMENT_RINGSIZE ;ringidx++)
 			{
-				printk("allocate tx ringidx %d \n",ringidx);
+				pr_debug("allocate tx ringidx %d \n",ringidx);
 				Status = RTMPAllocUsbBulkBufStruct(pAd, 
 													&pHTTXContext->pUrb[ringidx], 
 													(PVOID *)&pHTTXContext->TransferBuffer[ringidx], 
@@ -1794,7 +1792,7 @@ VOID RTUSBBssBeaconStop(
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 			NumOfBcn = MAX_MESH_NUM;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			NumOfBcn +=  MAX_P2P_NUM;
 #endif /* P2P_SUPPORT */
 		}
@@ -1844,7 +1842,7 @@ VOID RTUSBBssBeaconStart(
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 			NumOfBcn = MAX_MESH_NUM;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			NumOfBcn +=  MAX_P2P_NUM;
 #endif /* P2P_SUPPORT */
 		}
@@ -1865,7 +1863,7 @@ VOID RTUSBBssBeaconStart(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 				{
 					CapabilityInfoLocationInBeacon = pAd->ApCfg.MBSSID[apidx].CapabilityInfoLocationInBeacon;
 					TimIELocationInBeacon = pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon;
@@ -2000,11 +1998,14 @@ VOID BeaconUpdateExec(
 		ReSyncBeaconTime(pAd);
 
 #ifdef CONFIG_AP_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
+		if(
 #ifdef P2P_SUPPORT
-		if ((P2P_INF_ON(pAd) && P2P_GO_ON(pAd))
+		  (P2P_INF_ON(pAd) && P2P_GO_ON(pAd)) ||
+#endif /* P2P_SUPPORT */
 //yiwei cfg
 #ifdef RT_CFG80211_SUPPORT
-			|| (pAd->VifNextMode == RT_CMD_80211_IFTYPE_AP)	
+			(pAd->VifNextMode == RT_CMD_80211_IFTYPE_AP)	
 #endif
 		)
 #else
@@ -2236,8 +2237,10 @@ VOID RT28xxUsbMlmeRadioOFF(
 		/*==========================================*/
 		/* Clean up old bss table*/
 #ifndef ANDROID_SUPPORT
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 /* because abdroid will get scan table when interface down, so we not clean scan table */
 		BssTableInit(&pAd->ScanTab);
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 #endif /* ANDROID_SUPPORT */
 
 	}

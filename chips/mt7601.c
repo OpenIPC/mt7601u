@@ -1339,7 +1339,7 @@ static VOID MT7601_ChipSwitchChannel(
 
 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
 	
-	DBGPRINT(RT_DEBUG_TRACE, ("%s: SwitchChannel#%d(RF=%d, %dT)\n",
+	DBGPRINT(RT_DEBUG_ERROR, ("%s: SwitchChannel#%d(RF=%d, %dT)\n",
 				__FUNCTION__, Channel, pAd->RfIcType, pAd->Antenna.field.TxPath));
 
 #ifdef MT7601FPGA
@@ -3198,7 +3198,7 @@ VOID MT7601_AsicTxAlcGetAutoAgcOffset(
 #ifdef MT7601FPGA
 	return;
 #endif /*MT7601FPGA */
-	DBGPRINT(RT_DEBUG_TRACE, ("Start TxAlcGetAutoAgcOffset\n"));
+	DBGPRINT(RT_DEBUG_INFO, ("Start TxAlcGetAutoAgcOffset\n"));
 #ifdef ED_MONITOR
 	if (pAd->ed_tx_stopped == TRUE) {
 		DBGPRINT(RT_DEBUG_TRACE, ("edcca stop tx and exit TxAlcGetAutoOffset\n"));
@@ -3749,13 +3749,17 @@ CHAR MT7601_get_rssi(
   IN RTMP_ADAPTER   *pAd)
 {
   UINT32              rssi  = 0;
+#ifdef CONFIG_AP_SUPPORT
   UINT16              i     = 0;
   AP_ADMIN_CONFIG   *pAppAd = NULL;
+#endif /* CONFIG_AP_SUPPORT */
   STA_ADMIN_CONFIG *pStapAd = NULL;
   UINT16             optype = 0;
 
   /*get config*/
+#ifdef CONFIG_AP_SUPPORT
   pAppAd  = &pAd->ApCfg;
+#endif /* CONFIG_AP_SUPPORT */
   pStapAd = &pAd->StaCfg;
 
   /*get rssi value by current op status*/
@@ -3792,6 +3796,7 @@ CHAR MT7601_get_rssi(
 
   switch(optype)
   {
+#ifdef P2P_SUPPORT
     case P2P_TYPE:
       /*only one sta (or p2p client)*/
       if ( pAppAd->MBSSID[MAIN_MBSSID].StaCount < 2)
@@ -3819,20 +3824,28 @@ CHAR MT7601_get_rssi(
           rssi -= pAd->BbpRssiToDbmDelta;
         }   
       }
+
       /* Workaround when rssi = -127*/
       /* Check if p2p's rssi is useable. If not, continune to get sta's rssi*/
       if (rssi > -100)
       {
     break;
       }
+#endif /* P2P_SUPPORT */
+
     case STA_TYPE:
         /*STA*/
+#ifdef CONFIG_AP_SUPPORT
         if ( pAppAd->MBSSID[MAIN_MBSSID].StaCount < 2)
+#else
+	if(1)//	if(pAd->NewIsCfgInApMode == 0x02)  //yonggang for STA only case
+#endif
         {
           rssi = RTMPAvgRssi(pAd, &pStapAd->RssiSample);
           rssi -= pAd->BbpRssiToDbmDelta;
         }
         /*AP mode*/
+#ifdef CONFIG_AP_SUPPORT
         else
         {
           if (pAd->Antenna.field.RxPath == 1)
@@ -3851,6 +3864,7 @@ CHAR MT7601_get_rssi(
             rssi -= pAd->BbpRssiToDbmDelta;
           }   
         }
+#endif /* CONFIG_AP_SUPPORT */
     break;
     default:
       DBGPRINT(RT_DEBUG_TRACE, ("Error Type!\n"));
@@ -3859,8 +3873,7 @@ CHAR MT7601_get_rssi(
 
   }
 
-  DBGPRINT(RT_DEBUG_TRACE, ("2[%s]:StaCount=%d,Avg Rssi=%d,pAd->OpMode=%d\n", __FUNCTION__,
-          pAd->ApCfg.MBSSID[MAIN_MBSSID].StaCount, rssi, pAd->OpMode)); 
+  DBGPRINT(RT_DEBUG_TRACE, ("2[%s]:Avg Rssi=%d \n", __FUNCTION__,rssi)); 	//Pengfei
  
 // DBGPRINT(RT_DEBUG_TRACE, ("3[%s]:STARssi=%d, APRssi=%d,pAd->OpMode=%d\n", __FUNCTION__,
 //           pAd->StaCfg.RssiSample.AvgRssi0,pAd->ApCfg.RssiSample.AvgRssi0, pAd->OpMode));
@@ -4033,11 +4046,13 @@ Note:
   if (((!OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED))\
 	 || (pAd->FlgCfg80211Scanning == TRUE) || (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)))
 #ifdef RT_CFG80211_SUPPORT
+#ifdef P2P_SUPPORT
 	&& (!RTMP_CFG80211_VIF_P2P_CLI_ON(pAd)) && (!RTMP_CFG80211_VIF_P2P_GO_ON(pAd))
+#endif 
 #endif 
 	)
   {
-  	DBGPRINT(RT_DEBUG_TRACE, ("No connection! Set fake rssi= -80!!!\n"));
+  	DBGPRINT(RT_DEBUG_ERROR, ("No connection! Set fake rssi= -80!!!\n"));
   	rssi = -80;
   } 
 
@@ -4049,7 +4064,13 @@ Note:
 
   /*4. check rssi range to do fundamental rssi-based dynamic vga*/
   /*--->STA or P2P_GC or P2P GO(only one client)*/
+#ifdef CONFIG_AP_SUPPORT
   if (pAd->ApCfg.MBSSID[MAIN_MBSSID].StaCount < 2)
+#else
+  //if(pAd->NewIsCfgInApMode == 0x02)
+  //if(pAd->cfg80211_ctrl.isCfgInApMode == RT_CMD_80211_IFTYPE_STATION)
+  if(1)  //yonggang for STA only case
+#endif
   {	
   	if (pAd->CommonCfg.Channel == pAd->CommonCfg.CentralChannel) //BW_20
   	{
@@ -4289,7 +4310,12 @@ Note:
     RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R196, init_aux_vga);
   }
 
+#ifdef CONFIG_AP_SUPPORT
   if (pAd->ApCfg.MBSSID[MAIN_MBSSID].StaCount >= 2)/*P2P GO, or AP, StaCount >= 2*/
+#else
+  //if (pAd->NewIsCfgInApMode == 0x03)
+   if(pAd->cfg80211_ctrl.isCfgInApMode == RT_CMD_80211_IFTYPE_AP)
+#endif
   {
 	  pre_reg_val = 0x0;
 	  /*R68*/
@@ -4428,7 +4454,11 @@ if(!pAd->CommonCfg.bDynaPDEnable)
 
  /*4. check rssi range to do fundamental rssi-based dynamic vga*/
    /*--->STA or P2P_GC or P2P GO(only one client)*/
+#ifdef CONFIG_AP_SUPPORT
    if (pAd->ApCfg.MBSSID[MAIN_MBSSID].StaCount < 2)
+#else
+   if (pAd->NewIsCfgInApMode == 0x02)
+#endif /* CONFIG_AP_SUPPORT */
    {
      /*get default rssi_thr*/  
        if (rssi > RSSI_THR1)//~-62
@@ -4471,8 +4501,10 @@ if(!pAd->CommonCfg.bDynaPDEnable)
       }
     }
    
+#ifdef CONFIG_AP_SUPPORT
    DBGPRINT(RT_DEBUG_TRACE, ("[%s]main_vga(0x%x),aux_vga(0x%x),rssi(%d),StaCount(%d)\n",
            __FUNCTION__, init_main_vga, init_aux_vga, rssi, pAd->ApCfg.MBSSID[MAIN_MBSSID].StaCount));
+#endif /* CONFIG_AP_SUPPORT */
  
    /*R66*/
    RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R66, &pre_reg_val);

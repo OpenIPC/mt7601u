@@ -1245,7 +1245,7 @@ if (pTxBlk->apidx >= MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO)
 
 		{
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (pTxBlk->OpMode == OPMODE_AP)
 #else
 			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -1298,7 +1298,7 @@ if (pTxBlk->apidx >= MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO)
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (pTxBlk->OpMode == OPMODE_STA)
 #else
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -1555,7 +1555,7 @@ VOID RTMPDeQueuePacket(
 			pPacket = QUEUE_ENTRY_TO_PACKET(pEntry);
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (RTMP_GET_PACKET_OPMODE(pPacket))
 			{
 #endif /* P2P_SUPPORT */
@@ -1621,7 +1621,7 @@ VOID RTMPDeQueuePacket(
 					    NdisGetSystemUpTime(&pMacEntry->TimeStamp_toTxRing);
 				}
 			}
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			}
 #endif /* P2P_SUPPORT */
 #endif /* CONFIG_AP_SUPPORT */
@@ -1643,7 +1643,7 @@ VOID RTMPDeQueuePacket(
 			pTxBlk->TotalFragNum += RTMP_GET_PACKET_FRAGMENTS(pPacket);	/* The real fragment number maybe vary*/
 			pTxBlk->TotalFrameLen += GET_OS_PKT_LEN(pPacket);
 			pTxBlk->pPacket = pPacket;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			pTxBlk->OpMode = RTMP_GET_PACKET_OPMODE(pPacket);
 #endif /* P2P_SUPPORT */
 			InsertTailQueue(&pTxBlk->TxPacketList, PACKET_TO_QUEUE_ENTRY(pPacket));
@@ -1711,16 +1711,20 @@ VOID RTMPDeQueuePacket(
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			//if (FromWhichBSSID >= MIN_NET_DEVICE_FOR_APCLI)
 			if (RTMP_GET_PACKET_OPMODE(pPacket))
 				Status = APHardTransmit(pAd, pTxBlk, QueIdx);
 			else
 #endif /* P2P_SUPPORT */
+#ifdef CONFIG_AP_SUPPORT
 			if(!INFRA_ON(pAd) && !RTMP_CFG80211_VIF_P2P_GO_ON(pAd)&& pAd->cfg80211_ctrl.isCfgInApMode == RT_CMD_80211_IFTYPE_AP)
 				Status = APHardTransmit(pAd, pTxBlk, QueIdx);
 			else
+#endif /* CONFIG_AP_SUPPORT */
+			{
 				Status = STAHardTransmit(pAd, pTxBlk, QueIdx);
+			}
 			}
 #endif /* CONFIG_STA_SUPPORT */
 
@@ -1930,7 +1934,7 @@ UINT deaggregate_AMSDU_announce(
 
 
 	if ((FromWhichBSSID < pAd->ApCfg.BssidNum)
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		&& (OpMode == OPMODE_AP)
 #endif /* P2P_SUPPORT */
 		)
@@ -1978,7 +1982,7 @@ UINT deaggregate_AMSDU_announce(
 
 #ifdef CONFIG_STA_SUPPORT
 		if ((Header802_3[12] == 0x88) && (Header802_3[13] == 0x8E)
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			&& (OpMode == OPMODE_STA)
 #endif /* P2P_SUPPORT */
 			)
@@ -2000,7 +2004,7 @@ UINT deaggregate_AMSDU_announce(
 #endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (OpMode == OPMODE_AP)
 #else
 		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -2055,7 +2059,7 @@ UINT deaggregate_AMSDU_announce(
 				AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pClonePacket, RTMP_GET_PACKET_IF(pPacket));
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (OpMode == OPMODE_AP)
 			{
 				AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pClonePacket, RTMP_GET_PACKET_IF(pPacket));
@@ -2198,7 +2202,7 @@ BOOLEAN RTMPCheckEtherType(
 /*		 pMbss = pMacEntry->pMbss;*/
 /*	else*/
 /*		 pMbss = &pAd->ApCfg.MBSSID[MAIN_MBSSID];*/
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (OpMode == OPMODE_AP)
 #else
 	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -2213,7 +2217,7 @@ BOOLEAN RTMPCheckEtherType(
 	}
 #endif /* CONFIG_AP_SUPPORT */
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	pMbss = &pAd->ApCfg.MBSSID[MAIN_MBSSID];
 #endif /* P2P_SUPPORT */
 	/*
@@ -2223,7 +2227,7 @@ BOOLEAN RTMPCheckEtherType(
 	bWmmReq = (
 #ifdef CONFIG_AP_SUPPORT
 				(
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 				(OpMode == OPMODE_AP) &&
 #endif /* P2P_SUPPORT */
 				(pMbss->bWmmCapable)) || 
@@ -2390,6 +2394,19 @@ BOOLEAN RTMPCheckEtherType(
 						RTMP_SET_PACKET_DHCP(pPacket, 1);
 					}
 				}
+
+			/* TCP ack speed up. Put into VI queue */
+                        //yonggang 20170105
+			if(*(pSrcBuf + 9) == 0x6 /* Is TCP pkt */
+				&& (*(pSrcBuf + 20 + 13) & 0x10) == 0x10  /* Is TCP ack */
+				&& pktLen<100  /* Is a small pkt (adjustable) */
+				){
+				//DBGPRINT(RT_DEBUG_TRACE, ("up=%d, len=%d, ack=0x%X\n", up, pktLen, *(pSrcBuf + IP_HDR_LEN + 13)));
+				*pUserPriority = 5;
+				*pQueIdx = QID_AC_VI;
+			}
+
+
 			}
 			break;
 		case 0x86dd:
@@ -2553,70 +2570,68 @@ VOID Update_Rssi_Sample(
 	}
 }
 
-
-
 /* Compare CCMP PN value and return whether the pkt in rxblk is allowed.
  *
  * @pRxBlk: the rxblk to be checked
  */
 BOOLEAN check_rx_pkt_pn_allowed(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 {
-        MAC_TABLE_ENTRY *pEntry;
+	MAC_TABLE_ENTRY *pEntry;
 
-        if (likely(!pRxBlk->ccmp_pn_valid)) {
-                DBGPRINT(RT_DEBUG_TRACE, ("no CCMP PN, bypass\n"));
-                return TRUE; /* ccmp_pn not calculated (UC or non-ccmp BMC) */
-        }
+	if (likely(!pRxBlk->ccmp_pn_valid)) {
+		DBGPRINT(RT_DEBUG_INFO, ("no CCMP PN, bypass\n"));
+		return TRUE; /* ccmp_pn not calculated (UC or non-ccmp BMC) */
+	}
 
-        if (unlikely(pRxBlk->wcid >= MAX_LEN_OF_MAC_TABLE)) {
-                DBGPRINT(RT_DEBUG_ERROR, ("invalid pRxBlk->wcid %u, bypass\n",
-                        pRxBlk->wcid));
-                return TRUE;
-        }
+	if (unlikely(pRxBlk->wcid >= MAX_LEN_OF_MAC_TABLE)) {
+		DBGPRINT(RT_DEBUG_TRACE, ("invalid pRxBlk->wcid %u, bypass\n",
+			pRxBlk->wcid));
+		return TRUE;
+	}
 
-        pEntry = &pAd->MacTab.Content[pRxBlk->wcid];
+	pEntry = &pAd->MacTab.Content[pRxBlk->wcid];
 
 #if 0
-        if (!pEntry->wdev) {
-                DBGPRINT(RT_DEBUG_ERROR, ("null w %u pEntry->wdev, bypass\n",
-                        pRxBlk->wcid));
-                return TRUE;
-        }
+	if (!pEntry->wdev) {
+		DBGPRINT(RT_DEBUG_ERROR, ("null w %u pEntry->wdev, bypass\n",
+			pRxBlk->wcid));
+		return TRUE;
+	}
 #endif
 
-        if (pRxBlk->pRxInfo->Mcast || pRxBlk->pRxInfo->Bcast) {
-                UCHAR kid = pRxBlk->key_idx;
+	if (pRxBlk->pRxInfo->Mcast || pRxBlk->pRxInfo->Bcast) {
+		UCHAR kid = pRxBlk->key_idx;
 
-                if (unlikely(kid >= ARRAY_SIZE(pEntry->rx_ccmp_pn_bmc))) {
-                        DBGPRINT(RT_DEBUG_ERROR, ("invalid key id %u\n", kid));
-                        return TRUE;
-                }
+		if (unlikely(kid >= ARRAY_SIZE(pEntry->rx_ccmp_pn_bmc))) {
+			DBGPRINT(RT_DEBUG_TRACE, ("invalid key id %u\n", kid));
+			return TRUE;
+		}
 
-                if (likely(pRxBlk->ccmp_pn > pEntry->rx_ccmp_pn_bmc[kid])) {
-                        /* PN-0 is NOT allowed from now on */
-                        pEntry->rx_ccmp_pn_bmc_zero[kid] = FALSE;
-                        pEntry->rx_ccmp_pn_bmc[kid] = pRxBlk->ccmp_pn;
-                        DBGPRINT(RT_DEBUG_ERROR, ("update rx bmc[%u] PN %llu\n",
-                                 kid, pRxBlk->ccmp_pn));
-                        return TRUE;
-                }
+		if (likely(pRxBlk->ccmp_pn > pEntry->rx_ccmp_pn_bmc[kid])) {
+			/* PN-0 is NOT allowed from now on */
+			pEntry->rx_ccmp_pn_bmc_zero[kid] = FALSE;
+			pEntry->rx_ccmp_pn_bmc[kid] = pRxBlk->ccmp_pn;
+			DBGPRINT(RT_DEBUG_TRACE, ("update rx bmc[%u] PN %llu\n",
+				 kid, pRxBlk->ccmp_pn));
+			return TRUE;
+		}
 
-                /* Some APs initialize PN to 0, allow it only if first rx pkt */
-                if (unlikely(pRxBlk->ccmp_pn == 0)) {
-                        if (pEntry->rx_ccmp_pn_bmc_zero[kid]) {
-                                pEntry->rx_ccmp_pn_bmc_zero[kid] = FALSE;
-                                return TRUE;
-                        }
-                }
+		/* Some APs initialize PN to 0, allow it only if first rx pkt */
+		if (unlikely(pRxBlk->ccmp_pn == 0)) {
+			if (pEntry->rx_ccmp_pn_bmc_zero[kid]) {
+				pEntry->rx_ccmp_pn_bmc_zero[kid] = FALSE;
+				return TRUE;
+			}
+		}
 
-                DBGPRINT(RT_DEBUG_ERROR, ("drop rx bmc[%u] %llu, exp > %llu\n",
-                         kid, pRxBlk->ccmp_pn,
-                         pEntry->rx_ccmp_pn_bmc[kid]));
-                return FALSE;
-        }
+		DBGPRINT(RT_DEBUG_ERROR, ("drop rx bmc[%u] %llu, exp > %llu\n",
+			 kid, pRxBlk->ccmp_pn,
+			 pEntry->rx_ccmp_pn_bmc[kid]));
+		return FALSE;
+	}
 
-        /* skip unicast check now */
-        return TRUE;
+	/* skip unicast check now */
+	return TRUE;
 }
 
 /* Normal legacy Rx packet indication*/
@@ -2650,21 +2665,24 @@ if (0) {
 			b. modify pRxBlk->DataSize
 	*/
 #ifdef RT_CFG80211_SUPPORT
+#ifdef CONFIG_AP_SUPPORT
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
     		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
 	}	
 	else
+#endif /* CONFIG_AP_SUPPORT */
 	{
 		RTMP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
 	}
+
 #else
 #ifdef CONFIG_AP_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
 		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
@@ -2751,12 +2769,14 @@ if (0) {
 	
 	/* pass this 802.3 packet to upper layer or forward this packet to WM directly*/
 #ifdef RT_CFG80211_SUPPORT
+#ifdef CONFIG_AP_SUPPORT
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		//printk("AP ANNOUNCE FromWhichBSSID: %d\n", FromWhichBSSID);
 		AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pRxPacket, FromWhichBSSID);
 	}	
 	else
+#endif /* CONFIG_AP_SUPPORT */
 	{
 		//printk("FromWhichBSSID: %d\n", FromWhichBSSID);
 		ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pRxPacket, FromWhichBSSID);
@@ -2767,7 +2787,7 @@ if (0) {
 		AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pRxPacket, FromWhichBSSID);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		UCHAR	WhichBSSID = FromWhichBSSID;
@@ -2907,14 +2927,14 @@ if (0) {
 		AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pRxPacket, FromWhichBSSID);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		UCHAR	WhichBSSID = FromWhichBSSID;
-		
+#if defined(P2P_SUPPORT)	
 		if (FromWhichBSSID >= MIN_NET_DEVICE_FOR_P2P_GO)
 			WhichBSSID = FromWhichBSSID - MIN_NET_DEVICE_FOR_P2P_GO;
-
+#endif	
 		MBSS_VLAN_INFO_GET(pAd, VLAN_VID, VLAN_Priority, WhichBSSID);
 
 #ifdef WDS_VLAN_SUPPORT
@@ -3032,7 +3052,7 @@ VOID CmmRxRalinkFrameIndicate(
 		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
@@ -3073,7 +3093,7 @@ VOID CmmRxRalinkFrameIndicate(
 	}
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		/* pPacket2 = duplicate_pkt_with_VLAN(pAd, (pData2-LENGTH_802_3), LENGTH_802_3, pData2, Payload2Size, FromWhichBSSID, TPID); */
@@ -3127,7 +3147,7 @@ VOID CmmRxRalinkFrameIndicate(
 		AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pRxBlk->pRxPacket, FromWhichBSSID);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pRxBlk->pRxPacket, FromWhichBSSID);
@@ -3149,7 +3169,7 @@ VOID CmmRxRalinkFrameIndicate(
 			AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket2, FromWhichBSSID);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket2, FromWhichBSSID);
@@ -3319,7 +3339,7 @@ VOID Indicate_EAPOL_Packet(
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (IS_PKT_OPMODE_AP(pRxBlk))
 		{	
 			APRxEAPOLFrameIndicate(pAd, pEntry, pRxBlk, FromWhichBSSID);
@@ -3476,7 +3496,7 @@ VOID RtmpEnqueueNullFrame(
 	{
 #ifdef CONFIG_AP_SUPPORT
 		MgtMacHeaderInit(pAd, pNullFr, SUBTYPE_NULL_FUNC, 0, pAddr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->ApCfg.MBSSID[apidx].Bssid,
 #endif /* P2P_SUPPORT */
 							pAd->ApCfg.MBSSID[apidx].Bssid);
@@ -3519,7 +3539,7 @@ VOID RtmpEnqueueNullFrame(
 	}
 }
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 BOOLEAN RxDoneInterruptHandle(
 	IN RTMP_ADAPTER *pAd) 
 {
@@ -3634,7 +3654,7 @@ BOOLEAN RxDoneInterruptHandle(
 		{
 			DBGPRINT(RT_DEBUG_TRACE,("NULL_FRAME: %02x:%02x:%02x:%02x:%02x:%02x\n", PRINT_MAC(pHeader->Addr2)));
 		}
-
+#ifdef P2P_SUPPORT
 		if (RTMP_CFG80211_VIF_P2P_GO_ON(pAd) || RTMP_CFG80211_VIF_P2P_CLI_ON(pAd))
 		{
 			
@@ -3652,6 +3672,7 @@ BOOLEAN RxDoneInterruptHandle(
 			}
 		}
 		else
+#endif /* P2P_SUPPORT */			
 		{
 			IF_DEV_CONFIG_OPMODE_ON_AP(pAd) 
 			{
@@ -4319,4 +4340,3 @@ NTSTATUS StopDmaTx(
 	//DBGPRINT(RT_DEBUG_TRACE, ("<==== %s\n", __FUNCTION__));
 	return STATUS_SUCCESS;
 }
-

@@ -106,8 +106,14 @@ BOOLEAN RtmpOsCmdDisplayLenCheck(
 #if defined(WPA_SUPPLICANT_SUPPORT) || defined(APCLI_WPA_SUPPLICANT_SUPPORT)
 VOID WpaSendMicFailureToWpaSupplicant(
 	IN PNET_DEV pNetDev,
-	IN BOOLEAN bUnicast)
+	IN const PUCHAR src_addr,
+	IN BOOLEAN bUnicast,
+	IN INT key_id,
+	IN const PUCHAR tsc)
 {    
+#ifdef RT_CFG80211_SUPPORT
+	CFG80211OS_MICFailReport(pNetDev, src_addr, bUnicast, key_id, tsc);
+#else
 	char custom[IW_CUSTOM_MAX] = {0};
     
 	snprintf(custom, sizeof(custom), "MLME-MICHAELMICFAILURE.indication");
@@ -115,6 +121,7 @@ VOID WpaSendMicFailureToWpaSupplicant(
 		sprintf(custom, "%s unicast", custom);
 
 	RtmpOSWrielessEventSend(pNetDev, RT_WLAN_EVENT_CUSTOM, -1, NULL, (PUCHAR)custom, strlen(custom));
+#endif
 	
 	return;
 }

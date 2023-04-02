@@ -134,7 +134,7 @@ void Announce_Reordering_Packet(IN PRTMP_ADAPTER			pAd,
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (IS_OPMODE_AP(mpdu))
 		{
 			AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket, RTMP_GET_PACKET_IF(pPacket));
@@ -605,7 +605,7 @@ VOID BAOriSessionAdd(
 	ULONG           FrameLen;
 	FRAME_BAR       FrameBar;
 	UCHAR			MaxPeerBufSize;
-#if defined(CONFIG_AP_SUPPORT) && !defined(P2P_SUPPORT)
+#if !defined(STA_ONLY_SUPPORT) && !defined(P2P_SUPPORT) && !defined(SOFTAP_SUPPORT)
 	UCHAR			apidx;
 #endif /* CONFIG_AP_SUPPORT */
 
@@ -651,7 +651,7 @@ VOID BAOriSessionAdd(
 			return;
 		}
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT) 
 		BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pBAEntry->Wcid].Addr, pAd->MacTab.Content[pBAEntry->Wcid].HdrAddr2);
 #else
 #ifdef CONFIG_AP_SUPPORT
@@ -1173,7 +1173,7 @@ VOID BAOriSessionSetupTimeout(
 		MLME_ADDBA_REQ_STRUCT    AddbaReq;  
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#ifdef P2P_SUPPORT  //we use the next instead for  avoid IS_P2P_ENTRY_NONE
 	if ((pAd->OpMode == OPMODE_STA) && IS_ENTRY_CLIENT(pEntry) && IS_P2P_ENTRY_NONE(pEntry))
 #else
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -1270,7 +1270,7 @@ VOID PeerAddBAReqAction(
 	ULONG       FrameLen;
 	PULONG      ptemp;
 	PMAC_TABLE_ENTRY	pMacEntry;
-#if defined(CONFIG_AP_SUPPORT)&&!defined(P2P_SUPPORT)
+#if !defined(STA_ONLY_SUPPORT) && !defined(P2P_SUPPORT) && !defined(SOFTAP_SUPPORT)
 	INT         apidx;
 #endif /* CONFIG_AP_SUPPORT */
 
@@ -1319,7 +1319,7 @@ VOID PeerAddBAReqAction(
 
 	NdisZeroMemory(&ADDframe, sizeof(FRAME_ADDBA_RSP));
 	/* 2-1. Prepare ADDBA Response frame.*/
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT) 
 		if (pMacEntry)
 		{
 #ifdef CONFIG_STA_SUPPORT
@@ -1567,10 +1567,10 @@ VOID SendPSMPAction(
 	NDIS_STATUS NStatus;
 	FRAME_PSMP_ACTION Frame;
 	ULONG FrameLen;
-#if defined(CONFIG_AP_SUPPORT)&& !defined(P2P_SUPPORT)
+#if !defined(STA_ONLY_SUPPORT) && !defined(P2P_SUPPORT) && !defined(SOFTAP_SUPPORT) 
 	UCHAR apidx;
 #endif /* CONFIG_AP_SUPPORT */
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	PMAC_TABLE_ENTRY pEntry;
 #endif /* P2P_SUPPORT */
 
@@ -1581,7 +1581,7 @@ VOID SendPSMPAction(
 		return;
 	}
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (VALID_WCID(Wcid))
 	{
 		pEntry = &pAd->MacTab.Content[Wcid];
@@ -1739,7 +1739,7 @@ void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (IS_PKT_OPMODE_AP(pRxBlk))
 	{
 		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
@@ -1793,7 +1793,7 @@ void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (IS_PKT_OPMODE_AP(pRxBlk))
 		{
 			/* maybe insert VLAN tag to the received packet */
@@ -1801,10 +1801,10 @@ void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
 			UCHAR *data_p;
 			USHORT VLAN_VID = 0, VLAN_Priority = 0;
 			UCHAR	WhichBSSID = FromWhichBSSID;
-	
+#if defined(P2P_SUPPORT)	
 			if (FromWhichBSSID >= MIN_NET_DEVICE_FOR_P2P_GO)
 				WhichBSSID = FromWhichBSSID - MIN_NET_DEVICE_FOR_P2P_GO;
-
+#endif
 			/* VLAN related */
 			MBSS_VLAN_INFO_GET(pAd, VLAN_VID, VLAN_Priority, WhichBSSID);
 			

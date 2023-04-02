@@ -1211,7 +1211,7 @@ VOID RtmpUSBNullFrameKickOut(
 
 		/* Fill out frame length information for global Bulk out arbitor*/
 		/*pNullContext->BulkOutSize = TransferBufferLength;*/
-		DBGPRINT(RT_DEBUG_TRACE, ("%s - Send NULL Frame @%d Mbps...\n", __FUNCTION__, RateIdToMbps[pAd->CommonCfg.TxRate]));
+		DBGPRINT(RT_DEBUG_ERROR, ("%s - Send NULL Frame @%d Mbps...\n", __FUNCTION__, RateIdToMbps[pAd->CommonCfg.TxRate]));
 		RTUSB_SET_BULK_FLAG(pAd, fRTUSB_BULK_OUT_DATA_NULL);
 
 		pAd->Sequence = (pAd->Sequence+1) & MAXSEQ;
@@ -1406,6 +1406,7 @@ label_null:
 NDIS_STATUS	RTMPCheckRxError(
 	IN RTMP_ADAPTER *pAd,
 	IN PHEADER_802_11 pHeader,	
+	IN RX_BLK * pRxBlk,
 	IN RXWI_STRUC *pRxWI,	
 	IN RXINFO_STRUC *pRxInfo)
 {	
@@ -1447,7 +1448,7 @@ NDIS_STATUS	RTMPCheckRxError(
 	if (pHeader->FC.ToDs
 		)
 	{
-		DBGPRINT_RAW(RT_DEBUG_ERROR, ("Err;FC.ToDs\n"));
+		DBGPRINT_RAW(RT_DEBUG_TRACE, ("Err;FC.ToDs\n"));
 		return NDIS_STATUS_FAILURE;
 	}
 #endif /* CLIENT_WDS */
@@ -1480,9 +1481,10 @@ NDIS_STATUS	RTMPCheckRxError(
 		{			
 			pWpaKey = &pAd->SharedKey[BSS0][pRxWI->RxWIKeyIndex];
 #ifdef WPA_SUPPLICANT_SUPPORT                                    
-            if (pAd->StaCfg.WpaSupplicantUP)
-                WpaSendMicFailureToWpaSupplicant(pAd->net_dev, 
-                                   (pWpaKey->Type == PAIRWISEKEY) ? TRUE:FALSE);
+			if (pAd->StaCfg.WpaSupplicantUP)
+				WpaSendMicFailureToWpaSupplicant(pAd->net_dev, pHeader->Addr2,
+						(pWpaKey->Type == PAIRWISEKEY) ? TRUE:FALSE,
+						(INT) pRxBlk->key_idx, NULL);
             else
 #endif /* WPA_SUPPLICANT_SUPPORT */
 			RTMPReportMicError(pAd, pWpaKey);

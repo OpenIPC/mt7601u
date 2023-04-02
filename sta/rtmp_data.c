@@ -459,10 +459,9 @@ BOOLEAN STACheckTkipMICValue(
 
 #ifdef WPA_SUPPLICANT_SUPPORT
 		if (pAd->StaCfg.WpaSupplicantUP) {
-			WpaSendMicFailureToWpaSupplicant(pAd->net_dev,
-							 (pWpaKey->Type ==
-							  PAIRWISEKEY) ? TRUE :
-							 FALSE);
+			WpaSendMicFailureToWpaSupplicant(pAd->net_dev, pHeader->Addr2,
+					(pWpaKey->Type == PAIRWISEKEY) ? TRUE : FALSE,
+					(INT) pRxBlk->key_idx, NULL);
 		} else
 #endif /* WPA_SUPPLICANT_SUPPORT */
 		{
@@ -1062,7 +1061,7 @@ if (0 /*!(pRxInfo->Mcast || pRxInfo->Bcast)*/){
 			pRxBlk->ccmp_pn <<= 16;
 			pRxBlk->ccmp_pn += le16_to_cpu(get_unaligned((const u16 *)&pRxBlk->eiv_pn[0]));
 			pRxBlk->ccmp_pn_valid = TRUE;
-			DBGPRINT(RT_DEBUG_WARN, ("BMC aes k %u b %u pn %llu w %u\n",
+			DBGPRINT(RT_DEBUG_INFO, ("BMC aes k %u b %u pn %llu w %u\n",
 				pRxBlk->key_idx, pRxBlk->bss_idx,
 				pRxBlk->ccmp_pn, pRxBlk->wcid));
 		} while (0);
@@ -2022,15 +2021,16 @@ if (0){
 		INC_COUNTER64(pAd->WlanCounters.ReceivedFragmentCount);
 #endif /* STATS_COUNT_SUPPORT */
 
-		if (pRxWI->RxWIMPDUByteCnt < 14)
-		{
-			Status = NDIS_STATUS_FAILURE;
-			continue;
-		}
-
+//20170331, for monitor mode to receive small package
 		if (MONITOR_ON(pAd))
 		{
 			STA_MonPktSend(pAd, &RxBlk);
+			continue;
+		}
+
+		if (pRxWI->RxWIMPDUByteCnt < 14)
+		{
+			Status = NDIS_STATUS_FAILURE;
 			continue;
 		}
 
@@ -2097,7 +2097,7 @@ if (0){
 
 
 		/* Check for all RxD errors */
-		Status = RTMPCheckRxError(pAd, pHeader, pRxWI, pRxInfo);
+		Status = RTMPCheckRxError(pAd, pHeader, &RxBlk, pRxWI, pRxInfo);
 
 		/* Handle the received frame */
 		if (Status == NDIS_STATUS_SUCCESS) {
@@ -2259,7 +2259,7 @@ BOOLEAN STAHandleRxDonePacket(
 #endif /* RALINK_ATE */
 
 	/* Check for all RxD errors */
-	Status = RTMPCheckRxError(pAd, pHeader, pRxWI, pRxInfo);
+	Status = RTMPCheckRxError(pAd, pHeader, pRxBlk, pRxWI, pRxInfo);
 
 	/* Handle the received frame */
 	if (Status == NDIS_STATUS_SUCCESS)
@@ -2594,7 +2594,7 @@ NDIS_STATUS STASendPacket(
 		|| (pAd->StaCfg.MicErrCnt >= 2))
 	    && (RTMP_GET_PACKET_EAPOL(pPacket) == FALSE)
 	    ) {
-		DBGPRINT(RT_DEBUG_TRACE,
+		DBGPRINT(RT_DEBUG_OFF,
 			 ("STASendPacket --> Drop packet before port secured !!!\n"));
 		RELEASE_NDIS_PACKET(pAd, pPacket, NDIS_STATUS_FAILURE);
 
@@ -3859,8 +3859,11 @@ VOID STA_AMPDU_Frame_Tx(
 				       (PUCHAR) (&pTxBlk->HeaderBuf[0]),
 				       (pHeaderBufPtr - (PUCHAR) (&pTxBlk->HeaderBuf[0])));
 #endif /* VENDOR_FEATURE1_SUPPORT */
-
-			pMacEntry->isCached = TRUE;
+/*
+			Need not cache buffer for header, otherwise,
+			PCE/PSE will be blocked on some platform.
+*/
+			/*pMacEntry->isCached = TRUE;*/
 		}
 
 #ifdef TXBF_SUPPORT

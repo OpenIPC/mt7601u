@@ -32,6 +32,8 @@ clean:
 	rm -f ../../mgmt/.*.cmd .*.flags .*.d
 	rm -f ../../naf/*.o
 	rm -f ../../naf/.*.cmd .*.flags .*.d
+	rm -f ../../ap/*.o
+	rm -f ../../ap/.*.cmd .*.flags .*.d
 ifeq ($(HAS_CONFIG_ELIAN_SUPPORT),y)
 	rm -f ../../elian/lib/*.o
 	rm -f ../../elian/lib/.*.cmd .*.flags .*.d

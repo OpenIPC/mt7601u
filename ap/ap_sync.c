@@ -156,7 +156,7 @@ VOID APPeerProbeReqAction(
 		if (NStatus != NDIS_STATUS_SUCCESS)
 			return;
 		MgtMacHeaderInit(pAd, &ProbeRspHdr, SUBTYPE_PROBE_RSP, 0, Addr2, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->ApCfg.MBSSID[apidx].Bssid,
 #endif /* P2P_SUPPORT */
 							pAd->ApCfg.MBSSID[apidx].Bssid);

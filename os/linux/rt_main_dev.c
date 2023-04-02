@@ -371,7 +371,7 @@ int rt28xx_open(VOID *dev)
 	/* the function can not be moved to RT2860_probe() even register_netdev()
 	   is changed as register_netdevice().
 	   Or in some PC, kernel will panic (Fedora 4) */
-#ifndef P2P_APCLI_SUPPORT
+#if !defined(STA_ONLY_SUPPORT) && !defined(P2P_SUPPORT) && !defined(SOFTAP_SUPPORT)
 	RT28xx_MBSS_Init(pAd, net_dev);
 #endif /* P2P_APCLI_SUPPORT */
 #endif /* MBSS_SUPPORT */
@@ -605,7 +605,7 @@ static int rt28xx_send_packets(
 	}
 
 	NdisZeroMemory((PUCHAR)&skb_p->cb[CB_OFF], 15);
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	NdisZeroMemory((PUCHAR)&skb_p->cb[CB_OFF+26], 1);
 #endif /* P2P_SUPPORT */
 	RTMP_SET_PACKET_NET_DEVICE_MBSSID(skb_p, MAIN_MBSSID);
@@ -787,8 +787,6 @@ BOOLEAN RtmpPhyNetDevExit(
 	IN VOID			*pAd, 
 	IN PNET_DEV		net_dev)
 {
-
-
 #ifdef CONFIG_AP_SUPPORT
 #ifdef APCLI_SUPPORT
 #ifndef P2P_APCLI_SUPPORT
@@ -799,7 +797,7 @@ BOOLEAN RtmpPhyNetDevExit(
 
 
 #ifdef MBSS_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
+#if !defined(P2P_APCLI_SUPPORT) && !defined(SOFTAP_SUPPORT) && !defined(STA_ONLY_SUPPORT)
 	RT28xx_MBSS_Remove(pAd);
 #endif /* P2P_APCLI_SUPPORT */
 #endif /* MBSS_SUPPORT */

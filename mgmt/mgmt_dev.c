@@ -11,7 +11,7 @@ struct wifi_dev *get_wdev_by_idx(RTMP_ADAPTER *pAd, INT idx)
 	
 	do
 	{
-#ifdef P2P_SUPPORT
+#if define(P2P_SUPPORT) || define(SOFTAP_SUPPORT)
 		if (idx >= MIN_NET_DEVICE_FOR_P2P_GO)
 		{
 			wdev = &pAd->ApCfg.MBSSID[idx - MIN_NET_DEVICE_FOR_P2P_GO].wdev;

@@ -64,7 +64,9 @@ UCHAR RxwiMCSToOfdmRate[12] = {
 };
 
 
+#ifdef CONFIG_APSTA_MIXED_SUPPORT
 UINT32 CW_MAX_IN_BITS;
+#endif /* CONFIG_APSTA_MIXED_SUPPORT */
 
 
 
@@ -195,8 +197,9 @@ NDIS_STATUS MlmeInit(
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
+#if defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)
 			BssTableInit(&pAd->ScanTab);
-
+#endif /* defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
 			/* init STA state machines*/
 			AssocStateMachineInit(pAd, &pAd->Mlme.AssocMachine, pAd->Mlme.AssocFunc);
 			AuthStateMachineInit(pAd, &pAd->Mlme.AuthMachine, pAd->Mlme.AuthFunc);
@@ -335,7 +338,9 @@ NDIS_STATUS MlmeInit(
 			RTMPInitTimer(pAd, &pAd->P2pCfg.P2pReSendTimer, GET_TIMER_FUNCTION(P2pReSendTimeOut), pAd, FALSE);
 			/* P2P CLIENT Re-Connect Timer */
 			RTMPInitTimer(pAd, &pAd->P2pCfg.P2pCliReConnectTimer, GET_TIMER_FUNCTION(P2pCliReConnectTimeOut), pAd, FALSE);
+#endif /* P2P_SUPPORT */
 
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			{
@@ -1323,9 +1328,11 @@ VOID MlmePeriodicExec(
 #endif /* ED_MONITOR */
 
 #ifdef DYNAMIC_PD_SUPPORT
-	
+
+#ifdef 	CONFIG_AP_SUPPORT
 	  RTMPAcsRssi(pAd, &pAd->ApCfg.RssiSample);
-	
+#endif /* CONFIG_AP_SUPPORT */
+
 	  /*Per one second run*/
 	  if (pAd->Mlme.PeriodicRound % MLME_TASK_EXEC_MULTIPLE == 0)
 	  {
@@ -1440,6 +1447,7 @@ BOOLEAN MlmeValidateSSID(
 VOID STAMlmePeriodicExec(
 	PRTMP_ADAPTER pAd)
 {
+#if (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 	ULONG			    TxTotalCnt;
 	int 	i;
 	BOOLEAN bCheckBeaconLost = TRUE;
@@ -2198,6 +2206,7 @@ SKIP_AUTO_SCAN_CONN:
 #endif /* DOT11_N_SUPPORT */
 
 	return;
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 /* Link down report*/
@@ -2335,6 +2344,8 @@ VOID MlmeCheckForRoaming(
 	IN PRTMP_ADAPTER pAd,
 	IN ULONG	Now32)
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	USHORT	   i;
 	BSS_TABLE  *pRoamTab = &pAd->MlmeAux.RoamTab;
 	BSS_ENTRY  *pBss;
@@ -2371,7 +2382,8 @@ VOID MlmeCheckForRoaming(
 			RTMP_MLME_HANDLER(pAd);
 		}
 	}
-	DBGPRINT(RT_DEBUG_TRACE, ("<== MlmeCheckForRoaming(# of candidate= %d)\n",pRoamTab->BssNr));   
+	DBGPRINT(RT_DEBUG_TRACE, ("<== MlmeCheckForRoaming(# of candidate= %d)\n",pRoamTab->BssNr));
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 /*
@@ -2389,6 +2401,8 @@ VOID MlmeCheckForRoaming(
 BOOLEAN MlmeCheckForFastRoaming(
 	IN	PRTMP_ADAPTER	pAd)
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	USHORT		i;
 	BSS_TABLE	*pRoamTab = &pAd->MlmeAux.RoamTab;
 	BSS_ENTRY	*pBss;
@@ -2429,6 +2443,8 @@ BOOLEAN MlmeCheckForFastRoaming(
 		}
 	}
 
+	return FALSE;
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 	return FALSE;
 }
 
@@ -2637,7 +2653,7 @@ VOID MlmeCalculateChannelQuality(
 		(OneSecTxNoRetryOkCount < 2) && /* no heavy traffic*/
 		RTMP_TIME_AFTER(Now32, LastBeaconRxTime + BeaconLostTime))
 	{
-		DBGPRINT(RT_DEBUG_TRACE, ("BEACON lost > %ld msec with TxOkCnt=%ld -> CQI=0\n", BeaconLostTime * (1000 / OS_HZ) , TxOkCnt)); 
+		DBGPRINT(RT_DEBUG_ERROR, ("BEACON lost > %ld msec with TxOkCnt=%ld -> CQI=0\n", BeaconLostTime * (1000 / OS_HZ) , TxOkCnt)); 
 		ChannelQuality = 0;
 	}
 	else
@@ -2825,7 +2841,7 @@ VOID MlmeUpdateTxRates(
 	do
 	{
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
 		{	
 			UCHAR	idx = apidx - MIN_NET_DEVICE_FOR_P2P_GO;
@@ -2928,7 +2944,7 @@ VOID MlmeUpdateTxRates(
 
 #ifdef CONFIG_STA_SUPPORT
 	if ((ADHOC_ON(pAd) || INFRA_ON(pAd)) && (pAd->OpMode == OPMODE_STA)
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT)
 		&& (apidx == MIN_NET_DEVICE_FOR_MBSSID)
 #endif /* P2P_SUPPORT */
 		)
@@ -3098,7 +3114,7 @@ VOID MlmeUpdateTxRates(
 			pMaxHtPhy->field.MCS = MaxDesire;
 		}
 #endif /* CONFIG_AP_SUPPORT */	
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (apidx >= MIN_NET_DEVICE_FOR_APCLI)
 			pMaxHtPhy->field.MCS = MaxDesire;
 #endif /* P2P_SUPPORT */	
@@ -3125,7 +3141,7 @@ VOID MlmeUpdateTxRates(
 		}
 #endif /* CONFIG_AP_SUPPORT */				
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT)
 		if (apidx >= MIN_NET_DEVICE_FOR_APCLI)
 			pMaxHtPhy->field.MCS = OfdmRateToRxwiMCS[MaxDesire];
 #endif /* P2P_SUPPORT */
@@ -3230,7 +3246,7 @@ VOID MlmeUpdateHtTxRates(
 	do
 	{
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
 		{		
 			UCHAR	idx = apidx - MIN_NET_DEVICE_FOR_P2P_GO;
@@ -3307,7 +3323,7 @@ VOID MlmeUpdateHtTxRates(
 
 #ifdef CONFIG_STA_SUPPORT	
 	if ((ADHOC_ON(pAd) || INFRA_ON(pAd)) && (pAd->OpMode == OPMODE_STA)
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT)
 		&& (apidx == BSS0)
 #endif /* P2P_SUPPORT */
 		)
@@ -3371,7 +3387,7 @@ VOID MlmeUpdateHtTxRates(
 	/*If STA assigns fixed rate. update to fixed here.*/
 #ifdef CONFIG_STA_SUPPORT
 	if ( (pAd->OpMode == OPMODE_STA) && (pDesireHtPhy->MCSSet[0] != 0xff)
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		&& (apidx == BSS0)
 #endif /* P2P_SUPPORT */
 		)
@@ -3676,6 +3692,18 @@ VOID BssTableDeleteEntry(
 			return;
 		}
 	}
+}
+
+
+ULONG BssTableSearchByBSSID(BSS_TABLE *Tab, UCHAR *pBssid)
+{
+	UCHAR i;
+
+	for (i = 0; i < Tab->BssNr; i++)
+		if (MAC_ADDR_EQUAL(Tab->BssEntry[i].Bssid, pBssid))
+			return i;
+
+	return (ULONG) BSS_NOT_FOUND;
 }
 
 
@@ -4129,6 +4157,8 @@ VOID BssTableSsidSort(
 	IN	CHAR Ssid[], 
 	IN	UCHAR SsidLen) 
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	INT i;
 #ifdef WSC_STA_SUPPORT
 	PWSC_CTRL	pWpsCtrl = &pAd->StaCfg.WscControl;
@@ -4430,6 +4460,7 @@ VOID BssTableSsidSort(
 	}
 
 	BssTableSortByRssi(OutTab);
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 
@@ -4480,6 +4511,7 @@ VOID BssCipherParse(
 	USHORT							Count;
 	INT								Length;
 	NDIS_802_11_ENCRYPTION_STATUS	TmpCipher;
+	BOOLEAN fgMultiAKMs = FALSE;  //2020_04_24 Update flow when connect to AP if RSN IE carry two AKM ways
 
 	
 	/* WepStatus will be reset later, if AP announce TKIP or AES on the beacon frame.*/
@@ -4744,6 +4776,9 @@ VOID BssCipherParse(
 				Count = (pTmp[1]<<8) + pTmp[0];
 				pTmp   += sizeof(USHORT);
 
+				if (Count > 1)
+					fgMultiAKMs = TRUE;
+
 				/* 5. Get AKM ciphers*/
 				/* Parsing all AKM ciphers*/
 				while (Count > 0)
@@ -4777,6 +4812,9 @@ VOID BssCipherParse(
 
 							break;
 						default:
+						     if (fgMultiAKMs)
+								break;
+														
 							if (pBss->AuthMode == Ndis802_11AuthModeOpen)
 								pBss->AuthMode = Ndis802_11AuthModeMax;
 							else
@@ -4959,7 +4997,7 @@ VOID MgtMacHeaderInit(
 	IN UCHAR SubType, 
 	IN UCHAR ToDs, 
 	IN PUCHAR pDA, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	IN PUCHAR pSA,
 #endif /* P2P_SUPPORT */
 	IN PUCHAR pBssid) 
@@ -4972,7 +5010,7 @@ VOID MgtMacHeaderInit(
 /*		pHdr80211->FC.Type = BTYPE_CNTL;*/
 	pHdr80211->FC.ToDs = ToDs;
 	COPY_MAC_ADDR(pHdr80211->Addr1, pDA);
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		COPY_MAC_ADDR(pHdr80211->Addr2, pSA);
 #else
 #ifdef CONFIG_AP_SUPPORT
@@ -5218,11 +5256,12 @@ BOOLEAN MlmeEnqueueForRecv(
 		/* Can't add debug print here. It'll make Mlme Stat machine freeze. */
 		DBGPRINT(RT_DEBUG_INFO, ("%s(): full and dropped\n", __func__));
 #endif /* RELEASE_EXCLUDE */
+		DBGPRINT(RT_DEBUG_TRACE, ("%s(): full and dropped\n", __func__)); //Penfei_fix
 		return FALSE;
 	}
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (OpMode == OPMODE_AP)
 #else
 	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -5286,7 +5325,7 @@ BOOLEAN MlmeEnqueueForRecv(
 	}
 #endif /* CONFIG_AP_SUPPORT */	
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	if (OpMode == OPMODE_STA)
 #else
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -5380,10 +5419,11 @@ BOOLEAN MlmeEnqueueForWsc(
         return FALSE;
 
 	/* First check the size, it MUST not exceed the mlme queue size*/
-    if (MsgLen > MGMT_DMA_BUFFER_SIZE) {
+	if (MsgLen > MGMT_DMA_BUFFER_SIZE)
+	{
         DBGPRINT_ERR(("MlmeEnqueueForWsc: msg too large, size = %ld \n", MsgLen));
-	return FALSE;
-    }
+		return FALSE;
+	}
 	
     if (MlmeQueueFull(Queue, 1)) 
     {

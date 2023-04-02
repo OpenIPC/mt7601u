@@ -59,9 +59,11 @@ MODULE_VERSION(STA_DRIVER_VERSION);
 #endif
 #endif /* CONFIG_STA_SUPPORT */
 
-
 extern USB_DEVICE_ID rtusb_dev_id[];
 extern INT const rtusb_usb_id_len;
+
+extern int prealloc_init(void);
+extern void prealloc_cleanup(void);
 
 static void rt2870_disconnect(
 	IN struct usb_device *dev, 
@@ -674,6 +676,8 @@ static int rt2870_resume(
 /* Init driver module */
 INT __init rtusb_init(void)
 {
+	prealloc_init();
+
 	printk("rtusb init %s --->\n", RTMP_DRV_NAME);
 #ifdef ALLWINNER
 	int ret;
@@ -719,7 +723,7 @@ INT __init rtusb_init(void)
 /* Deinit driver module */
 VOID __exit rtusb_exit(void)
 {
-    printk("---> @@@@@@ %s : rtusb exit\n", DRIVER_ROLE);
+	printk("---> @@@@@@ %s : rtusb exit\n", DRIVER_ROLE);
 	usb_deregister(&rtusb_driver);	
 #ifdef ALLWINNER
         printk("%s: sw_usb_disable_hcd: usbc_num = %d\n",DRIVER_ROLE, item.val);
@@ -734,6 +738,8 @@ VOID __exit rtusb_exit(void)
         wifi_deactivate_usb();
 #endif
 	printk("<--- %s : rtusb exit\n",DRIVER_ROLE);
+
+	prealloc_cleanup();
 }
 
 module_init(rtusb_init);
@@ -803,14 +809,6 @@ static void rt2870_disconnect(struct usb_device *dev, VOID *pAd)
 	RTMP_DRIVER_NET_DEV_GET(pAd, &net_dev);
 
 	RtmpPhyNetDevExit(pAd, net_dev);
-
-	/* FIXME: Shall we need following delay and flush the schedule?? */
-	udelay(1);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,5,0)	/* kernel 2.4 series */
-#else
-	flush_scheduled_work();
-#endif /* LINUX_VERSION_CODE */
-	udelay(1);
 
 //move up to prevent late resume call interface up
 #if 0//def CONFIG_HAS_EARLYSUSPEND

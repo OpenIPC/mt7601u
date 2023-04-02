@@ -334,6 +334,8 @@ NDIS_STATUS	RTMPAllocAdapterBlock(
 	/*
 		Init ProbeRespIE Table
 	*/
+#if (defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	for (index = 0; index < MAX_LEN_OF_BSS_TABLE; index++) 
 	{
 		if(pAd == NULL)
@@ -346,7 +348,7 @@ NDIS_STATUS	RTMPAllocAdapterBlock(
 		else
 			pAd->ProbeRespIE[index].pIe = NULL;
 	}	
-
+#endif /* defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
 	pAd->ext_flags = 0;
 	DBGPRINT_S(Status, ("<-- RTMPAllocAdapterBlock, Status=%x\n", Status));
 	return Status;
@@ -2970,7 +2972,7 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 #else
 			pWscControl->WscConfigMethods= 0x008C;
 #endif /* WSC_V2_SUPPORT */
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			pWscControl->WscConfigMethods |= 0x0100;
 #endif /* P2P_SUPPORT */
 			pWscControl->WscState = WSC_STATE_OFF;
@@ -3060,7 +3062,7 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 	/* part III. AP configurations*/
 	
 #ifdef CONFIG_AP_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
+#if !defined(P2P_APCLI_SUPPORT) && !defined(SOFTAP_SUPPORT)
 	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
 #endif /* P2P_APCLI_SUPPORT */
 	{
@@ -3122,7 +3124,7 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 #else
 				pWscControl->WscConfigMethods= 0x0084;
 #endif /* WSC_V2_SUPPORT */
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT)
 				pWscControl->WscConfigMethods |= 0x0108;
 #endif /* P2P_SUPPORT */
 				pWscControl->RegData.ReComputePke = 1;
@@ -3131,7 +3133,7 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 				pWscControl->pAd = pAd;
 				pWscControl->WscRejectSamePinFromEnrollee = FALSE;
 				pAd->CommonCfg.WscPBCOverlap = FALSE;
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT)
 				/*
 					Set defaule value of WscConfMode to be (WSC_REGISTRAR | WSC_ENROLLEE) for WiFi P2P.
 				*/
@@ -3346,8 +3348,8 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 		pAd->chipCap.bTxRxSwAntDiv = FALSE;
 #endif /* TXRX_SW_ANTDIV_SUPPORT */
 
+#if (defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
 
-#if defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)
 	for (i = 0; i < MAX_LEN_OF_BSS_TABLE; i++) 
 	{
 		PBSS_ENTRY	pBssEntry = &pAd->ScanTab.BssEntry[i];
@@ -3998,7 +4000,7 @@ INT RtmpRaDevCtrlInit(VOID *pAdSrc, RTMP_INF_TYPE infType)
 	DBGPRINT(RT_DEBUG_TRACE, ("AP Driver version-%s\n", AP_DRIVER_VERSION));
 #endif /* CONFIG_AP_SUPPORT */
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 	pAd->OpMode = OPMODE_STA;
 #endif /* P2P_SUPPORT */
 

@@ -157,15 +157,15 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 #ifdef RTMP_MAC_USB
 #ifdef ALLWINNER
-#define STA_PROFILE_PATH		"/etc/Wireless/RT2870STA/MT7601USTA.dat"
+#define STA_PROFILE_PATH			"/system/vendor/modules/RT2870STA_7601.dat"
 #else
 #ifdef ANDROID_O_SUPPORT
-#define STA_PROFILE_PATH		"/etc/Wireless/RT2870STA/MT7601USTA.dat"
+#define STA_PROFILE_PATH			"/vendor/etc/Wireless/RT2870STA/MT7601USTA.dat"
 #else
-#define STA_PROFILE_PATH		"/etc/Wireless/RT2870STA/MT7601USTA.dat"
+#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/MT7601USTA.dat"
 #endif /* ANDROID_O_SUPPORT */
 #endif
-#define STA_DRIVER_VERSION			"JEDI.MP1.mt7601u.v1.11"
+#define STA_DRIVER_VERSION			"JEDI.MP1.mt7601u.v1.12.2.3"
 #define DRIVER_ROLE			"STA"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2870STA/RT2870STACard.dat"
@@ -292,7 +292,7 @@ struct iw_statistics *rt28xx_get_wireless_stats(
 #define MIN_NET_DEVICE_FOR_DLS			0x40
 #define MIN_NET_DEVICE_FOR_TDLS			0x50
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 #define MIN_NET_DEVICE_FOR_P2P_CLI		(MIN_NET_DEVICE_FOR_TDLS + 0x10)
 #define MIN_NET_DEVICE_FOR_P2P_GO			(MIN_NET_DEVICE_FOR_TDLS + 0x20)
 #endif /* P2P_SUPPORT */
@@ -1232,7 +1232,7 @@ void linux_pci_unmap_single(void *handle, ra_dma_addr_t dma_addr, size_t size, i
 #endif /* INF_AMAZON_SE */
 
 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 #define RTMP_SET_PACKET_OPMODE(_p, _flg)   (RTPKT_TO_OSPKT(_p)->cb[CB_OFF+26] = _flg)
 #define RTMP_GET_PACKET_OPMODE(_p)         (RTPKT_TO_OSPKT(_p)->cb[CB_OFF+26])
 #endif /* P2P_SUPPORT */

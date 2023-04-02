@@ -1196,7 +1196,7 @@ VOID MacTableMaintenance(
 				DBGPRINT(RT_DEBUG_WARN, ("Send DEAUTH - Reason = %d frame  TO %x %x %x %x %x %x \n",
 										Reason, PRINT_MAC(pEntry->Addr)));
 				MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pEntry->Addr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 								pAd->ApCfg.MBSSID[pEntry->apidx].Bssid,
 #endif /* P2P_SUPPORT */
 								pAd->ApCfg.MBSSID[pEntry->apidx].Bssid);				
@@ -1903,7 +1903,7 @@ VOID ApUpdateAccessControlList(
 				DBGPRINT(RT_DEBUG_ERROR, ("ASSOC - Send DISASSOC  Reason = %d frame  TO %x %x %x %x %x %x \n",Reason,pAd->MacTab.Content[MacIdx].Addr[0],
 					pAd->MacTab.Content[MacIdx].Addr[1],pAd->MacTab.Content[MacIdx].Addr[2],pAd->MacTab.Content[MacIdx].Addr[3],pAd->MacTab.Content[MacIdx].Addr[4],pAd->MacTab.Content[MacIdx].Addr[5]));
 				MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pAd->MacTab.Content[MacIdx].Addr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 									pAd->ApCfg.MBSSID[pAd->MacTab.Content[MacIdx].apidx].Bssid,
 #endif /* P2P_SUPPORT */
 									pAd->ApCfg.MBSSID[pAd->MacTab.Content[MacIdx].apidx].Bssid);
@@ -1937,7 +1937,7 @@ VOID ApUpdateAccessControlList(
 				DBGPRINT(RT_DEBUG_ERROR, ("ASSOC - Send DISASSOC  Reason = %d frame  TO %x %x %x %x %x %x \n",Reason,pAd->MacTab.Content[MacIdx].Addr[0],
 					pAd->MacTab.Content[MacIdx].Addr[1],pAd->MacTab.Content[MacIdx].Addr[2],pAd->MacTab.Content[MacIdx].Addr[3],pAd->MacTab.Content[MacIdx].Addr[4],pAd->MacTab.Content[MacIdx].Addr[5]));
 				MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pAd->MacTab.Content[MacIdx].Addr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 									pAd->ApCfg.MBSSID[pAd->MacTab.Content[MacIdx].apidx].Bssid,
 #endif /* P2P_SUPPORT */
 									pAd->ApCfg.MBSSID[pAd->MacTab.Content[MacIdx].apidx].Bssid);
@@ -1986,7 +1986,7 @@ VOID ApEnqueueNullFrame(
 /*		if ((PID & 0x3f) < WDS_PAIRWISE_KEY_OFFSET) // send to client */
 		{
 			MgtMacHeaderInit(pAd, pNullFr, SUBTYPE_NULL_FUNC, 0, pAddr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 								pAd->ApCfg.MBSSID[apidx].Bssid,
 #endif /* P2P_SUPPORT */
 								pAd->ApCfg.MBSSID[apidx].Bssid);

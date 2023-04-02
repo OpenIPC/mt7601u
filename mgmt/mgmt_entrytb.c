@@ -80,7 +80,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 	if (pAd->MacTab.Size >= MAX_LEN_OF_MAC_TABLE)
 		return NULL;
 
-	FirstWcid = 1;
+		FirstWcid = 1;
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -168,7 +168,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 					if (OpMode == OPMODE_AP)
 #else
 					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -186,6 +186,10 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 						}
 #ifdef P2P_SUPPORT
 						SET_P2P_GO_ENTRY(pEntry);
+#elif defined(SOFTAP_SUPPORT) //lily_v1
+					SET_SOFTAP_ENTRY(pEntry);
+#else
+
 #endif /* P2P_SUPPORT */
 				}
 #endif /* CONFIG_AP_SUPPORT */
@@ -216,7 +220,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 #endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (OpMode == OPMODE_AP)
 #else
 			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -310,7 +314,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 						break;
 					}
 #endif /* APCLI_SUPPORT */
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 					if (OpMode == OPMODE_AP)
 #else
 					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -335,7 +339,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 					if (OpMode == OPMODE_STA)
 #else
 				IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -418,7 +422,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 #endif /* STREAM_MODE_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (OpMode == OPMODE_AP)
 #else
 			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -444,7 +448,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 
 
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			if (OpMode == OPMODE_AP)
 #else
 			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -487,7 +491,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			pCurrEntry->pNext = pEntry;
 		}
 #ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 		if (OpMode == OPMODE_AP)
 #else
 		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
@@ -591,8 +595,12 @@ BOOLEAN MacTableDeleteEntry(
 
 #ifdef CONFIG_AP_SUPPORT
 			if (IS_ENTRY_CLIENT(pEntry)
-#if 1
+#if defined(P2P_SUPPORT) || defined(RT_CFG80211_P2P_SUPPORT)	//lily_v1
 				&& (IS_P2P_GO_ENTRY(pEntry))
+#elif defined(SOFTAP_SUPPORT)	//lily_v1
+			&& (IS_SOFTAP_ENTRY(pEntry))
+#else	
+			&& FALSE
 #endif /* P2P_SUPPORT */
 			)
 			{
@@ -870,7 +878,7 @@ VOID MacTableReset(
 					Reason = REASON_NO_LONGER_VALID;
 					DBGPRINT(RT_DEBUG_WARN, ("Send DEAUTH - Reason = %d frame tO %02x:%02x:%02x:%02x:%02x:%02x \n",Reason, PRINT_MAC(pAd->MacTab.Content[i].Addr)));
 					MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pAd->MacTab.Content[i].Addr, 
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 										pAd->ApCfg.MBSSID[pAd->MacTab.Content[i].apidx].Bssid,
 #endif /* P2P_SUPPORT */
 										pAd->ApCfg.MBSSID[pAd->MacTab.Content[i].apidx].Bssid);

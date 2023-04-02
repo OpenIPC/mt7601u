@@ -3788,11 +3788,18 @@ VOID APRxDErrorHandle(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 
 					if (pRxInfo->CipherErr == 2)
 					{	
+						UINT TabIdx = pEntry->MatchAPCLITabIdx;
 						pWpaKey = &pEntry->PairwiseKey;
 			                                   
-			           		 if (pAd->ApCfg.ApCliTab[pEntry->MatchAPCLITabIdx].WpaSupplicantUP)
-								WpaSendMicFailureToWpaSupplicant(pAd->net_dev,
-												 (pWpaKey->Type == PAIRWISEKEY) ? TRUE : FALSE);
+						if (pAd->ApCfg.ApCliTab[TabIdx].WpaSupplicantUP)
+							WpaSendMicFailureToWpaSupplicant(
+								pAd->net_dev,
+								pHeader->Addr2,
+								(pWpaKey->Type == PAIRWISEKEY),
+								(INT)pRxBlk->key_idx,
+								NULL
+							);
+
 			           		 if (((pRxInfo->CipherErr & 2) == 2) && INFRA_ON(pAd))
 			                		RTMPSendWirelessEvent(pAd, IW_MIC_ERROR_EVENT_FLAG, pEntry->Addr, FromWhichBSSID, 0);
 
@@ -3950,10 +3957,9 @@ BOOLEAN APCheckTkipMICValue(
 #ifdef APCLI_WPA_SUPPLICANT_SUPPORT
 		if (IS_ENTRY_APCLI(pEntry) && pAd->ApCfg.ApCliTab[pEntry->MatchAPCLITabIdx].WpaSupplicantUP)
 		{
-			WpaSendMicFailureToWpaSupplicant(pAd->net_dev,
-							 (pWpaKey->Type ==
-							  PAIRWISEKEY) ? TRUE :
-							 FALSE);
+			WpaSendMicFailureToWpaSupplicant(pAd->net_dev, pHeader->Addr2,
+					(pWpaKey->Type == PAIRWISEKEY) ? TRUE : FALSE,
+					(INT)pRxBlk->key_idx, NULL);
 		}
 		else 
 #endif /* APCLI_WPA_SUPPLICANT_SUPPORT */
@@ -3980,6 +3986,7 @@ VOID APHandleRxMgmtFrame(
 	PNDIS_PACKET pRxPacket = pRxBlk->pRxPacket;
 
 #ifdef RT_CFG80211_SUPPORT
+#ifdef P2P_SUPPORT
 	if ((pHeader->FC.SubType == SUBTYPE_PROBE_REQ) || 
 	    ((pHeader->FC.SubType == SUBTYPE_ACTION) && 
 	    (CFG80211DRV_PrintFrameType(pAd, "P2P_CHECK", (PUCHAR)pHeader,  pRxWI->RXWI_O.MPDUtotalByteCnt) == TRUE)))
@@ -4013,6 +4020,7 @@ VOID APHandleRxMgmtFrame(
 		if ( ((pHeader->FC.SubType == SUBTYPE_PROBE_REQ) && ( pAd->Cfg80211RegisterProbeReqFrame == TRUE)) ||
 			 ((pHeader->FC.SubType == SUBTYPE_ACTION)  && ( pAd->Cfg80211RegisterActionFrame == TRUE) ))
 		{	 
+
 			//pAd->net_dev
 			if (CFG80211OS_RxMgmt(pAd->dummy_p2p_net_dev, freq, (PUCHAR)pHeader, pRxWI->RXWI_O.MPDUtotalByteCnt))
 			{
@@ -4025,10 +4033,10 @@ VOID APHandleRxMgmtFrame(
 			{
 				DBGPRINT(RT_DEBUG_INFO, ("MAIN AP RtmpOsCFG80211RxMgmt FAIL!! TYPE = %d, freq = %d, %02x:%02x:%02x:%02x:%02x:%02x\n",
 							  pHeader->FC.SubType, freq, PRINT_MAC(pHeader->Addr2)));
-			}										
+			}	
 		}
 	}
-
+#endif	
 #endif /* RT_CFG80211_SUPPORT */
 
 	do
@@ -5120,7 +5128,7 @@ if (0 /*!(pRxInfo->Mcast || pRxInfo->Bcast)*/){
 		UINT32 pn_len_byte;
 
 		if (!pRxInfo->pn_len) {
-			DBGPRINT(RT_DEBUG_OFF, ("no IV/EIV padded\n"));
+			DBGPRINT(RT_DEBUG_INFO, ("no IV/EIV padded\n"));
 			break; /* no IV/EIV padding */
 		}
 
@@ -6250,7 +6258,7 @@ BOOLEAN APFowardWirelessStaToWirelessSta(
 			RTMP_SET_PACKET_WCID(pForwardPacket, pEntry ? pEntry->Aid : MCAST_WCID);			
 			RTMP_SET_PACKET_SOURCE(pForwardPacket, PKTSRC_NDIS);
 			RTMP_SET_PACKET_MOREDATA(pForwardPacket, FALSE);
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 			RTMP_SET_PACKET_OPMODE(pForwardPacket, OPMODE_AP);
 #endif /* P2P_SUPPORT */
 #ifdef INF_AMAZON_SE
@@ -6331,7 +6339,7 @@ NDIS_STATUS APInsertPsQueue(
 	return NDIS_STATUS_SUCCESS;
 }
 
-#ifdef APCLI_SUPPORT
+#if defined(APCLI_SUPPORT)
 //#ifdef APCLI_WPA_SUPPLICANT_SUPPORT
 VOID	ApCliRTMPSendNullFrame(
 	IN	PRTMP_ADAPTER	pAd,

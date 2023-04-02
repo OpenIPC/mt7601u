@@ -99,6 +99,8 @@ VOID BeaconTimeout(
 	IN PVOID SystemSpecific2, 
 	IN PVOID SystemSpecific3) 
 {
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
+
 	RTMP_ADAPTER *pAd = (RTMP_ADAPTER *)FunctionContext;
 
 	DBGPRINT(RT_DEBUG_TRACE,("SYNC - BeaconTimeout\n"));
@@ -118,13 +120,16 @@ VOID BeaconTimeout(
 
 		AsicSwitchChannel(pAd, pAd->CommonCfg.CentralChannel, FALSE);
 		AsicLockChannel(pAd, pAd->CommonCfg.CentralChannel);
+#if defined(CONFIG_STA_SUPPORT) && (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 		DBGPRINT(RT_DEBUG_TRACE, ("SYNC - End of SCAN, restore to 40MHz channel %d, Total BSS[%02d]\n",
 									pAd->CommonCfg.CentralChannel, pAd->ScanTab.BssNr));
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 	}
 #endif /* DOT11_N_SUPPORT */
 
 	MlmeEnqueue(pAd, SYNC_STATE_MACHINE, MT2_BEACON_TIMEOUT, 0, NULL, 0);
 	RTMP_MLME_HANDLER(pAd);
+#endif	
 }
 
 /* 
@@ -272,14 +277,14 @@ VOID MlmeForceJoinReqAction(
 		{
 			COPY_MAC_ADDR(pAd->MlmeAux.Bssid, pAd->StaCfg.ConnectinfoBssid);
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, pAd->MlmeAux.Bssid,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
                                                                 pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */ 
 								pAd->MlmeAux.Bssid);
 		}
 		else
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
                                                                 pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 								BROADCAST_ADDR);
@@ -381,13 +386,15 @@ VOID MlmeForceScanReqAction(
 		RTMPSuspendMsduTransmission(pAd);
 #endif
 
-#ifdef RT_CFG80211_SUPPORT                                      
+#ifdef RT_CFG80211_SUPPORT
+#ifdef P2P_SUPPORT
                 if (pAd->ApCfg.ApCliTab[MAIN_MBSSID].Valid && RTMP_CFG80211_VIF_P2P_CLI_ON(pAd))
                 {
                 	DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_NULL: PWR_SAVE IN ForceScanStart\n"));
 			RT_CFG80211_P2P_CLI_SEND_NULL_FRAME(pAd, PWR_SAVE);
                 }
 
+#endif /* P2P_SUPPORT */
 #endif /* RT_CFG80211_SUPPORT */
 
 		
@@ -529,13 +536,14 @@ VOID MlmeScanReqAction(
 		RTMPSuspendMsduTransmission(pAd);
 #endif
 
-#ifdef RT_CFG80211_SUPPORT 
+#ifdef RT_CFG80211_SUPPORT
+#ifdef P2P_SUPPORT
                 if (pAd->ApCfg.ApCliTab[MAIN_MBSSID].Valid && RTMP_CFG80211_VIF_P2P_CLI_ON(pAd) && (pAd->apcli_wfd_connect!=TRUE))
                 {
                         DBGPRINT(RT_DEBUG_TRACE, ("CFG80211_NULL: PWR_SAVE IN ScanStart\n"));
 						RT_CFG80211_P2P_CLI_SEND_NULL_FRAME(pAd, PWR_SAVE);
                 }
-
+#endif /* APCLI_SUPPORT  */
 #endif /* RT_CFG80211_SUPPORT */
 		
 		/*
@@ -819,13 +827,13 @@ VOID MlmeJoinReqAction(
 
 			if (pAd->MlmeAux.BssType == BSS_INFRA)
 				MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, pAd->MlmeAux.Bssid,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 									pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 									pAd->MlmeAux.Bssid);
 			else
 				MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 									pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 									BROADCAST_ADDR);
@@ -1376,10 +1384,13 @@ LabelOK:
 		peer sends beacon back when scanning
 	==========================================================================
  */
+ #if defined(CONFIG_STA_SUPPORT)
 VOID PeerBeaconAtScanAction(
 	IN PRTMP_ADAPTER pAd, 
 	IN MLME_QUEUE_ELEM *Elem) 
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	PFRAME_802_11 pFrame;
 	USHORT LenVIE;
 	UCHAR *VarIE = NULL;
@@ -1529,6 +1540,7 @@ LabelOK:
 	if (ie_list != NULL)
 		os_free_mem(NULL, ie_list);
 	return;
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 
@@ -1542,6 +1554,7 @@ VOID PeerBeaconAtJoinAction(
 	IN PRTMP_ADAPTER pAd, 
 	IN MLME_QUEUE_ELEM *Elem) 
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 	BOOLEAN TimerCancelled;
 	USHORT LenVIE;
 	USHORT Status;
@@ -1935,6 +1948,7 @@ LabelOK:
 		os_free_mem(NULL, VarIE);
 
 	return;
+#endif /* defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
 }
 
 /* 
@@ -1950,6 +1964,8 @@ VOID PeerBeacon(
 	IN PRTMP_ADAPTER pAd, 
 	IN MLME_QUEUE_ELEM *Elem) 
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	UCHAR index=0;
 	USHORT TbttNumToNextWakeUp;
 	USHORT LenVIE;
@@ -2829,8 +2845,9 @@ LabelOK:
 		os_free_mem(NULL, ie_list);
 
 	return;
+#endif /* defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT) */
 }
-
+#endif /*CONFIG_STA_SUPPORT */
 /* 
 	==========================================================================
 	Description:
@@ -2877,7 +2894,7 @@ VOID PeerProbeReqAction(
 				return;
 
 			MgtMacHeaderInit(pAd, &ProbeRspHdr, SUBTYPE_PROBE_RSP, 0, Addr2,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 								pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 								pAd->CommonCfg.Bssid);
@@ -3217,7 +3234,7 @@ VOID EnqueueProbeRequest(
 	if (NState == NDIS_STATUS_SUCCESS) 
 	{
 		MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 							pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 							BROADCAST_ADDR);

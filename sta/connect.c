@@ -216,7 +216,9 @@ VOID MlmeCntlMachinePerformAction(
 							MaxBeaconRxTimeDiff: 120 seconds
 							MaxSameBeaconRxTimeCount: 1
 						*/
+#if (defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
 						MaintainBssTable(pAd, &pAd->ScanTab, 120, 2);
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 					}
 					
 #ifdef P2P_SUPPORT
@@ -279,6 +281,45 @@ when disassoc from ap1 ,and send even_scan will direct connect to ap2 , not need
 		if (Elem->MsgType == MT2_SCAN_CONF) {
 			USHORT	Status = MLME_SUCCESS;
 			NdisMoveMemory(&Status, Elem->Msg, sizeof(USHORT));
+#ifdef RT_CFG80211_SUPPORT
+						if (!MAC_ADDR_EQUAL
+							(pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid, ZERO_MAC_ADDR)) {
+							ULONG idx = 0;
+							/* This scan request was triggered by CntlOidSsidProc, and wpa_supplicant has assigned
+							   target BSSID to connect.
+							 */
+							RTMPResumeMsduTransmission(pAd);
+							pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+							BssTableSsidSort(pAd, &pAd->MlmeAux.SsidBssTab,
+									 (PCHAR) pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen);
+							idx =
+								BssTableSearchByBSSID(&pAd->MlmeAux.SsidBssTab,
+										  pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid);
+							if (idx == (ULONG) BSS_NOT_FOUND) {
+								DBGPRINT(RT_DEBUG_TRACE,
+									 ("%s: Cannot find requested BSSID(%02x:%02x:%02x:%02x:%02x:%02x) in table\n",
+									  __func__,
+									  PRINT_MAC(pAd->
+											cfg80211_ctrl.Cfg80211_ConnReqBssid)));
+								RT_CFG80211_CONN_RESULT_INFORM(pAd, pAd->MlmeAux.Bssid,
+												   NULL, 0, NULL, 0, 0);
+							} else {
+								DBGPRINT(RT_DEBUG_TRACE,
+									 ("%s: Found requested BSSID(%02x:%02x:%02x:%02x:%02x:%02x) @ BssIdx=%lu\n",
+									  __func__,
+									  PRINT_MAC(pAd->
+											cfg80211_ctrl.Cfg80211_ConnReqBssid),
+									  idx));
+								pAd->MlmeAux.BssIdx = idx;
+								IterateOnBssTab(pAd);
+							}
+							/* Clear the request record */
+							NdisZeroMemory(pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid,
+									   MAC_ADDR_LEN);
+							break;
+						}
+#endif /* RT_CFG80211_SUPPORT */
+			
 			/* Resume TxRing after SCANING complete. We hope the out-of-service time */
 			/* won't be too long to let upper layer time-out the waiting frames */
 			RTMPResumeMsduTransmission(pAd);
@@ -376,6 +417,8 @@ VOID CntlOidScanProc(
 	IN PRTMP_ADAPTER pAd,
 	IN MLME_QUEUE_ELEM *Elem)
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	MLME_SCAN_REQ_STRUCT ScanReq;
 	ULONG BssIdx = BSS_NOT_FOUND;
 /*	BSS_ENTRY                  CurrBss; */
@@ -428,6 +471,7 @@ VOID CntlOidScanProc(
 
 	if (pCurrBss != NULL)
 		os_free_mem(NULL, pCurrBss);
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 /*
@@ -443,6 +487,7 @@ VOID CntlOidSsidProc(
 	IN PRTMP_ADAPTER pAd,
 	IN MLME_QUEUE_ELEM *Elem)
 {
+#if defined(P2P_SUPPORT) || defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)
 	PNDIS_802_11_SSID pOidSsid = (NDIS_802_11_SSID *) Elem->Msg;
 	MLME_DISASSOC_REQ_STRUCT DisassocReq;
 
@@ -486,13 +531,13 @@ VOID CntlOidSsidProc(
 	BssTableSsidSort(pAd, &pAd->MlmeAux.SsidBssTab,
 			 (PCHAR) pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen);
 
-	DBGPRINT(RT_DEBUG_TRACE,
+	DBGPRINT(RT_DEBUG_ERROR,
 		 ("CntlOidSsidProc():CNTL - %d BSS of %d BSS match the desire ",
 		  pAd->MlmeAux.SsidBssTab.BssNr, pAd->ScanTab.BssNr));
 	if (pAd->MlmeAux.SsidLen == MAX_LEN_OF_SSID)
 		hex_dump("\nSSID", pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen);
 	else
-		DBGPRINT(RT_DEBUG_TRACE,
+		DBGPRINT(RT_DEBUG_ERROR,
 			 ("(%d)SSID - %s\n", pAd->MlmeAux.SsidLen,
 			  pAd->MlmeAux.Ssid));
 
@@ -663,7 +708,67 @@ VOID CntlOidSsidProc(
 								__FUNCTION__, pAd->CommonCfg.SavedPhyMode, entry->Channel));
 				}
 			}
+#ifdef RT_CFG80211_SUPPORT
+						{
+							ULONG idx = 0;
+							/* We should try the requested BSSID first if assigned */
+							if (!MAC_ADDR_EQUAL
+								(pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid, ZERO_MAC_ADDR)) {
+								idx = BssTableSearchByBSSID(&pAd->MlmeAux.SsidBssTab,
+												pAd->
+												cfg80211_ctrl.Cfg80211_ConnReqBssid);
+								if (idx != (ULONG) BSS_NOT_FOUND) {
+									DBGPRINT(RT_DEBUG_ERROR,
+										 ("%s: Found BSSID(%02x:%02x:%02x:%02x:%02x:%02x)\n",
+										  __func__,
+										  PRINT_MAC(pAd->
+												cfg80211_ctrl.Cfg80211_ConnReqBssid)));
+								} else {
+									MLME_SCAN_REQ_STRUCT ScanReq;
+			
+									DBGPRINT(RT_DEBUG_TRACE,
+										 ("%s: Cannot find BSSID(%02x:%02x:%02x:%02x:%02x:%02x)\n",
+										  __func__,
+										  PRINT_MAC(pAd->
+												cfg80211_ctrl.Cfg80211_ConnReqBssid)));
+									/* Case-study:
+									   The requested BSSID is not in the ScaTab,
+									   it could be caused by newtork containing
+									   too many APs exceeding driver's max size
+									   (128). In such case, we will need to
+									   perform a new scan immediately again with
+									   specific SSID to minize the scan results.
+									   Then after this scan, we shall try to
+									   connect again if the BSSID was found
+									*/
+			
+									NdisZeroMemory(&ScanReq,
+											   sizeof(MLME_SCAN_REQ_STRUCT));
+									ScanParmFill(pAd, &ScanReq,
+											 (PSTRING) pAd->MlmeAux.Ssid,
+											 pAd->MlmeAux.SsidLen, BSS_INFRA,
+											 SCAN_ACTIVE);
+									MlmeEnqueue(pAd, SYNC_STATE_MACHINE,
+											MT2_MLME_FORCE_SCAN_REQ,
+											sizeof(MLME_SCAN_REQ_STRUCT), &ScanReq,
+											0);
+									pAd->Mlme.CntlMachine.CurrState =
+										CNTL_WAIT_SCAN_FOR_CONNECT;
+									/* Reset Missed scan number */
+									NdisGetSystemUpTime(&pAd->StaCfg.LastScanTime);
+									pAd->StaCfg.bNotFirstScan = TRUE;
+									return;
+								}
+							}
+							pAd->MlmeAux.BssIdx = idx;
+							/* Clear the request record */
+							NdisZeroMemory(pAd->cfg80211_ctrl.Cfg80211_ConnReqBssid,
+									   MAC_ADDR_LEN);
+						}
+#else /* !RT_CFG80211_SUPPORT */
 			pAd->MlmeAux.BssIdx = 0;
+#endif /* RT_CFG80211_SUPPORT */
+
 			IterateOnBssTab(pAd);
 		}
 
@@ -684,6 +789,7 @@ VOID CntlOidSsidProc(
 		}
 #endif /* RT_CFG80211_SUPPORT */
 	}
+#endif /* (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 #ifdef WSC_STA_SUPPORT
@@ -750,6 +856,8 @@ VOID CntlOidRTBssidProc(
 	IN PRTMP_ADAPTER pAd,
 	IN MLME_QUEUE_ELEM *Elem)
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	ULONG BssIdx;
 	PUCHAR pOidBssid = (PUCHAR) Elem->Msg;
 	MLME_DISASSOC_REQ_STRUCT DisassocReq;
@@ -978,6 +1086,7 @@ VOID CntlOidRTBssidProc(
 			pAd->Mlme.CntlMachine.CurrState = CNTL_WAIT_JOIN;
 		}
 	}
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 /* Roaming is the only external request triggering CNTL state machine */
@@ -1005,6 +1114,7 @@ VOID CntlMlmeRoamingProc(
 
 		BssTableSortByRssi(&pAd->MlmeAux.SsidBssTab);
 		pAd->MlmeAux.BssIdx = 0;
+		DBGPRINT(RT_DEBUG_ERROR, ("@%s(%d) Before implement IterateOnBssTab.\n",__func__,__LINE__));
 		IterateOnBssTab(pAd);
 	}
 }
@@ -1201,6 +1311,22 @@ VOID CntlWaitDisassocProc(
 		}
 		/* case 2. try each matched BSS */
 		else {
+#ifdef RT_CFG80211_SUPPORT
+				{
+					BOOLEAN TimerCancelled;
+					/* We should let wpa_supplicant do the roaming */
+					DBGPRINT(RT_DEBUG_TRACE,
+						 ("%s(%d): Dis-associate successful, DO NOT try next BSS\n",
+						  __func__,__LINE__));
+					RTMPCancelTimer(&pAd->MlmeAux.BeaconTimer, &TimerCancelled);
+
+					pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+					pAd->Mlme.SyncMachine.CurrState = SYNC_IDLE;
+					/* pAd->cfg80211_ctrl.FlgCfg80211Connecting = FALSE; */
+					RT_CFG80211_CONN_RESULT_INFORM(pAd, pAd->MlmeAux.Bssid,
+								       NULL, 0, NULL, 0, 0);
+				}
+#else /* !RT_CFG80211_SUPPORT */			
 			/*
 			   Some customer would set AP1 & AP2 same SSID, AuthMode & EncrypType but different WPAPSK,
 			   therefore we need to try next AP here.
@@ -1221,6 +1347,7 @@ VOID CntlWaitDisassocProc(
 			else
 				pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
 #endif /* WSC_STA_SUPPORT */
+#endif /* RT_CFG80211_SUPPORT */
 		}
 	}
 }
@@ -1298,9 +1425,23 @@ VOID CntlWaitJoinProc(
 		}
 		else
 		{
+#ifdef RT_CFG80211_SUPPORT
+				{
+					BOOLEAN TimerCancelled;
+					/* We should let wpa_supplicant do the roaming */
+					DBGPRINT(RT_DEBUG_TRACE,
+						 ("%s(%d): WaitJoinProc fail, DO NOT try next BSS\n",
+						  __func__,__LINE__));
+					RTMPCancelTimer(&pAd->MlmeAux.BeaconTimer, &TimerCancelled);
+
+					pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+					pAd->Mlme.SyncMachine.CurrState = SYNC_IDLE;
+				}
+#else /* !RT_CFG80211_SUPPORT */		
 			/* 3. failed, try next BSS */
 			pAd->MlmeAux.BssIdx++;
 			IterateOnBssTab(pAd);
+#endif/* RT_CFG80211_SUPPORT */				
 		}
 	}
 }
@@ -1520,14 +1661,32 @@ VOID CntlWaitAuthProc2(
 				DBGPRINT(RT_DEBUG_TRACE,
 					 ("CNTL - AUTH FAIL, give up; try next BSS\n"));
 
-#ifdef RT_CFG80211_SUPPORT
-                        RT_CFG80211_CONN_RESULT_INFORM(pAd, pAd->MlmeAux.Bssid, NULL, 0,
-                                                            NULL, 0, 0);
-#endif /* RT_CFG80211_SUPPORT */
 				RTMP_STA_ENTRY_MAC_RESET(pAd, BSSID_WCID);
 				pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+#ifdef RT_CFG80211_SUPPORT
+				{
+					BOOLEAN TimerCancelled;
+					/* We should let wpa_supplicant do the roaming */
+					DBGPRINT(RT_DEBUG_TRACE,
+						 ("%s: AUTH FAIL, DO NOT try next BSS\n",
+						  __func__));
+					RTMPCancelTimer(&pAd->MlmeAux.BeaconTimer, &TimerCancelled);
+					/*
+					   pAd->MlmeAux.SsidBssTab.BssNr = 0;
+					   BssTableDeleteEntry(&pAd->ScanTab,
+					   pAd->MlmeAux.SsidBssTab.BssEntry[pAd->MlmeAux.BssIdx-1].Bssid,
+					   pAd->MlmeAux.SsidBssTab.BssEntry[pAd->MlmeAux.BssIdx-1].Channel);
+					 */
+					pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+					pAd->Mlme.SyncMachine.CurrState = SYNC_IDLE;
+					/* pAd->cfg80211_ctrl.FlgCfg80211Connecting = FALSE; */
+					RT_CFG80211_CONN_RESULT_INFORM(pAd, pAd->MlmeAux.Bssid,
+								       NULL, 0, NULL, 0, 0);
+				}
+#else /* !RT_CFG80211_SUPPORT */				
 				pAd->MlmeAux.BssIdx++;
 				IterateOnBssTab(pAd);
+#endif				
 			}
 		}
 	}
@@ -1562,13 +1721,24 @@ VOID CntlWaitAssocProc(
 				 ("CNTL - Association fails on BSS #%ld\n", pAd->MlmeAux.BssIdx));
 //yiwei cfg
 #ifdef RT_CFG80211_SUPPORT
+						{
+							BOOLEAN TimerCancelled;
+							/* We should let wpa_supplicant do the roaming */
+							DBGPRINT(RT_DEBUG_TRACE,
+								 ("%s: WaitASSOC FAIL, DO NOT try next BSS\n", __func__));
+							RTMPCancelTimer(&pAd->MlmeAux.BeaconTimer, &TimerCancelled);
+							pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+							pAd->Mlme.SyncMachine.CurrState = SYNC_IDLE;
                         RT_CFG80211_CONN_RESULT_INFORM(pAd, pAd->MlmeAux.Bssid, NULL, 0,
                                                             NULL, 0, 0);
+						}
+#else /* !RT_CFG80211_SUPPORT */
+                                    pAd->MlmeAux.BssIdx++;
+                                    IterateOnBssTab(pAd);
 #endif /* RT_CFG80211_SUPPORT */
 
 			RTMP_STA_ENTRY_MAC_RESET(pAd, BSSID_WCID);
-			pAd->MlmeAux.BssIdx++;
-			IterateOnBssTab(pAd);
+
 		}
 	}
 }
@@ -1751,13 +1921,13 @@ VOID LinkUp(
 	}
 	DBGPRINT(RT_DEBUG_OFF, ("!!!%s LINK UP !!! \n", (BssType == BSS_ADHOC ? "ADHOC" : "Infra")));
 			
-	DBGPRINT(RT_DEBUG_OFF,
+/*	DBGPRINT(RT_DEBUG_OFF,
 		 ("!!! LINK UP !!! (BssType=%d, AID=%d, ssid=%s, Channel=%d, CentralChannel = %d)\n",
 		  BssType, pAd->StaActive.Aid, pAd->CommonCfg.Ssid,
 		  pAd->CommonCfg.Channel, pAd->CommonCfg.CentralChannel));
-
+*/
 #ifdef DOT11_N_SUPPORT
-	DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK UP !!! (Density =%d, )\n", pAd->MacTab.Content[BSSID_WCID].MpduDensity));
+	DBGPRINT(RT_DEBUG_ERROR, ("!!! LINK UP !!! (Density =%d, )\n", pAd->MacTab.Content[BSSID_WCID].MpduDensity));
 #endif /* DOT11_N_SUPPORT */
 
 	/*
@@ -1991,7 +2161,6 @@ VOID LinkUp(
 		 move to assoc.c 
  */
 /*			RTMPWPARemoveAllKeys(pAd);*/
-			pAd->StaCfg.PortSecured = WPA_802_1X_PORT_NOT_SECURED;
 			pAd->StaCfg.PrivacyFilter = Ndis802_11PrivFilter8021xWEP;
 
 
@@ -2056,12 +2225,13 @@ VOID LinkUp(
 			}
 		}
 		else
-#endif /* P2P_SUPPORT */
 #ifdef RT_CFG80211_SUPPORT
 		if (RTMP_CFG80211_VIF_P2P_GO_ON(pAd))
 			AsicEnableP2PGoSync(pAd);
 		else
-#endif
+#endif /* RT_CFG80211_SUPPORT */
+#endif /* P2P_SUPPORT */
+
 			AsicEnableBssSync(pAd);
 
 
@@ -2137,7 +2307,7 @@ VOID LinkUp(
 
 
 
-		DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK UP !!!  ClientStatusFlags=%lx)\n",
+		DBGPRINT(RT_DEBUG_ERROR, ("!!! LINK UP !!!  ClientStatusFlags=%lx)\n",
 			  pAd->MacTab.Content[BSSID_WCID].ClientStatusFlags));
 
 
@@ -2169,7 +2339,7 @@ VOID LinkUp(
 		MlmeUpdateTxRates(pAd, TRUE, BSS0);
 #ifdef DOT11_N_SUPPORT
 		MlmeUpdateHtTxRates(pAd, BSS0);
-		DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK UP !! (StaActive.bHtEnable =%d)\n",
+		DBGPRINT(RT_DEBUG_ERROR, ("!!! LINK UP !! (StaActive.bHtEnable =%d)\n",
 			  pAd->StaActive.SupportedPhyInfo.bHtEnable));
 #endif /* DOT11_N_SUPPORT */
 
@@ -2449,19 +2619,19 @@ VOID LinkUp(
 		    && (pAd->MlmeAux.ExtCapInfo.BssCoexistMgmtSupport == 1)) {
 			OPSTATUS_SET_FLAG(pAd, fOP_STATUS_SCAN_2040);
 			BuildEffectedChannelList(pAd);
-			DBGPRINT(RT_DEBUG_TRACE,
+			DBGPRINT(RT_DEBUG_ERROR,
 				 ("LinkUP AP supports 20/40 BSS COEX, Dot11BssWidthTriggerScanInt[%d]\n",
 				  pAd->CommonCfg.Dot11BssWidthTriggerScanInt));
 		} else {
-			DBGPRINT(RT_DEBUG_TRACE, ("not supports 20/40 BSS COEX !!! \n"));
-			DBGPRINT(RT_DEBUG_TRACE,
+			DBGPRINT(RT_DEBUG_ERROR, ("not supports 20/40 BSS COEX !!! \n"));
+			DBGPRINT(RT_DEBUG_ERROR,
 				 ("pAd->CommonCfg Info: bBssCoexEnable=%d, Channel=%d, CentralChannel=%d, PhyMode=%d\n",
 					pAd->CommonCfg.bBssCoexEnable, pAd->CommonCfg.Channel,
 					pAd->CommonCfg.CentralChannel, pAd->CommonCfg.PhyMode));
-			DBGPRINT(RT_DEBUG_TRACE,
+			DBGPRINT(RT_DEBUG_ERROR,
 				 ("pAd->StaActive.SupportedHtPhy.bHtEnable=%d\n",
 				  pAd->StaActive.SupportedPhyInfo.bHtEnable));
-			DBGPRINT(RT_DEBUG_TRACE,
+			DBGPRINT(RT_DEBUG_ERROR,
 				 ("pAd->MlmeAux.ExtCapInfo.BssCoexstSup=%d\n",
 				  pAd->MlmeAux.ExtCapInfo.BssCoexistMgmtSupport));
 		}
@@ -2547,6 +2717,8 @@ VOID LinkDown(
 	IN PRTMP_ADAPTER pAd,
 	IN BOOLEAN IsReqFromAP)
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	UCHAR i;
 	
 	/* Do nothing if monitor mode is on */
@@ -2567,7 +2739,7 @@ VOID LinkDown(
 
 	RTMPSendWirelessEvent(pAd, IW_STA_LINKDOWN_EVENT_FLAG, NULL, BSS0, 0);
 
-	DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK DOWN !!! - %d - %d\n", pAd->StaCfg.bImprovedScan, pAd->MlmeAux.Channel));
+	DBGPRINT(RT_DEBUG_ERROR, ("!!! LINK DOWN !!! - %d - %d\n", pAd->StaCfg.bImprovedScan, pAd->MlmeAux.Channel));
 	OPSTATUS_CLEAR_FLAG(pAd, fOP_STATUS_AGGREGATION_INUSED);
 
 	/* reset to not doing improved scan */
@@ -2646,7 +2818,7 @@ VOID LinkDown(
 			 ("!!! MacTab.Size=%d !!!\n", pAd->MacTab.Size));
 	} else {		/* Infra structure mode */
 
-		DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK DOWN 2!!!\n"));
+		DBGPRINT(RT_DEBUG_ERROR, ("!!! LINK DOWN 2!!!\n"));
 
 #ifdef QOS_DLS_SUPPORT
 		/* DLS tear down frame must be sent before link down */
@@ -2969,6 +3141,7 @@ VOID LinkDown(
 #ifdef MICROWAVE_OVEN_SUPPORT
 	pAd->CommonCfg.MO_Cfg.bEnable = FALSE;
 #endif /* MICROWAVE_OVEN_SUPPORT */
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 /*
@@ -2982,6 +3155,8 @@ VOID LinkDown(
 VOID IterateOnBssTab(
 	IN PRTMP_ADAPTER pAd)
 {
+#if defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT))
+
 	MLME_START_REQ_STRUCT StartReq;
 	MLME_JOIN_REQ_STRUCT JoinReq;
 	ULONG BssIdx;
@@ -3118,6 +3293,7 @@ VOID IterateOnBssTab(
 #endif /* WSC_LED_SUPPORT */
 #endif /* WSC_STA_SUPPORT */
 	}
+#endif /* defined(CONFIG_STA_SUPPORT) && (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)) */
 }
 
 /* for re-association only */
@@ -3374,7 +3550,7 @@ ULONG MakeIbssBeacon(
 
 	/* compose IBSS beacon frame */
 	MgtMacHeaderInit(pAd, &BcnHdr, SUBTYPE_BEACON, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
 						pAd->CurrentAddress,
 #endif /* P2P_SUPPORT */
 			 pAd->CommonCfg.Bssid);

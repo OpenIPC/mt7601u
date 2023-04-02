@@ -4301,8 +4301,16 @@ INT Set_ATE_Load_E2P_From_Buf_Proc(
 {
 	BOOLEAN		    	ret = FALSE;
 	UINT32 			value = (UINT32) simple_strtol(arg, 0, 10);
+	UINT EfuseFreeBlock=0;
 
 	DBGPRINT(RT_DEBUG_OFF, ("===> %s (value=%d)\n\n", __FUNCTION__, value));
+
+      eFuseGetFreeBlockCount(pAd, &EfuseFreeBlock);
+    if(EfuseFreeBlock < 24)
+    {
+      DBGPRINT(RT_DEBUG_OFF, ("!!!efuse number=%d less than 24,efuse writing fail \n", EfuseFreeBlock));
+      return  FALSE;
+    }
 
 	if (value > 0)
 	{

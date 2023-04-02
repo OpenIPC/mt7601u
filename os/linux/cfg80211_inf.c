@@ -206,8 +206,10 @@ VOID RTMP_CFG80211_VirtualIF_CancelP2pClient(
                 pDevEntry = (PCFG80211_VIF_DEV)pListEntry;
         }
 	
+#if defined(P2P_SUPPORT)
 	pAd->flg_apcli_init = FALSE;
 	pAd->ApCfg.ApCliTab[MAIN_MBSSID].dev = NULL;
+#endif /* P2P_SUPPORT */
 }
 
 
@@ -249,8 +251,10 @@ static INT CFG80211_VirtualIF_Open(
 	if (dev_p->ieee80211_ptr->iftype == RT_CMD_80211_IFTYPE_P2P_CLIENT)
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("ApCli_Open\n"));
+#if defined(P2P_SUPPORT)
 		pAd->flg_apcli_init = TRUE;
 		ApCli_Open(pAd, dev_p);
+#endif /* P2P_SUPPORT */
 		return 0;
 	}
 	
@@ -285,7 +289,8 @@ static INT CFG80211_VirtualIF_Close(
 	pAdSrc = RTMP_OS_NETDEV_GET_PRIV(dev_p);
 	ASSERT(pAdSrc);
 	pAd = (PRTMP_ADAPTER)pAdSrc;
-	
+
+#ifdef P2P_SUPPORT
 	if (dev_p->ieee80211_ptr->iftype == RT_CMD_80211_IFTYPE_P2P_CLIENT)
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("ApCli_Close\n"));
@@ -295,7 +300,8 @@ static INT CFG80211_VirtualIF_Close(
 		RT_MOD_DEC_USE_COUNT();
 		return ApCli_Close(pAd, dev_p);
 	}
-	
+#endif /* P2P_SUPPORT */
+
 	DBGPRINT(RT_DEBUG_TRACE, ("%s: ===> %s\n", __FUNCTION__, RTMP_OS_NETDEV_GET_DEVNAME(dev_p)));
 
 	RTMP_OS_NETDEV_STOP_QUEUE(dev_p);
@@ -324,7 +330,9 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdSrc;
 	RTMP_OS_NETDEV_OP_HOOK	netDevHook, *pNetDevOps;
 	PNET_DEV	new_dev_p;
+#if defined(P2P_SUPPORT)
 	APCLI_STRUCT	*pApCliEntry;
+#endif /* P2P_SUPPORT */
 	CHAR preIfName[12];
 	UINT devNameLen = strlen(pDevName);
 	UINT preIfIndex = pDevName[devNameLen-1] - 48;
@@ -402,8 +410,10 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 			//RTMP_OS_NETDEV_SET_TYPE_MONITOR(new_dev_p);	
 			break;
 
+#ifdef P2P_SUPPORT
 		case RT_CMD_80211_IFTYPE_P2P_CLIENT:
 			pNetDevOps->priv_flags = INT_APCLI;
+
 			pAd->ApCfg.ApCliTab[MAIN_MBSSID].dev = NULL;
 			pApCliEntry = &pAd->ApCfg.ApCliTab[MAIN_MBSSID];
 			pApCliEntry->dev = new_dev_p;
@@ -420,7 +430,7 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 			pAd->cfg80211_ctrl.isCfgInApMode = RT_CMD_80211_IFTYPE_AP;
 			COPY_MAC_ADDR(pAd->P2PCurrentAddress, pNetDevOps->devAddr);
 			break;
-
+#endif /* P2P_SUPPORT */
 		default:
 		DBGPRINT(RT_DEBUG_ERROR, ("Unknown CFG80211 I/F Type (%d)\n", DevType));
 	}
@@ -478,12 +488,13 @@ INT CFG80211_VirtualIF_PacketSend(
 		RELEASE_NDIS_PACKET(NULL, skb_p, NDIS_STATUS_FAILURE);
 		return 0;
 	}
-
+	
+#ifdef P2P_SUPPORT
 	if (dev_p->ieee80211_ptr->iftype == RT_CMD_80211_IFTYPE_P2P_CLIENT)
 	{
 		return P2P_PacketSend(skb_p, dev_p, rt28xx_packet_xmit);
 	}
-	
+#endif /* P2P_SUPPORT */
 	return CFG80211_PacketSend(skb_p, dev_p, rt28xx_packet_xmit);
 
 } /* End of CFG80211_VirtualIF_PacketSend */
@@ -508,7 +519,9 @@ VOID RTMP_CFG80211_VirtualIF_Remove(
 			pAd->cfg80211_ctrl.Cfg80211RocTimerRunning = FALSE;
 		}
 
+#ifdef APCLI_SUPPORT
 		pAd->apcli_wfd_connect = FALSE;
+#endif /* APCLI_SUPPORT */
 		pAd->Cfg80211VifDevSet.isGoingOn = FALSE;
 		isGoOn = RTMP_CFG80211_VIF_P2P_GO_ON(pAd);
 		RTMP_CFG80211_RemoveVifEntry(pAd, dev_p);
@@ -516,11 +529,13 @@ VOID RTMP_CFG80211_VirtualIF_Remove(
 		
 		kalCfg80211Disconnected(dev_p, 0, NULL, 0, TRUE, GFP_KERNEL);
 		synchronize_rcu();
+#ifdef CONFIG_AP_SUPPORT
 		if (isGoOn)
 		{
 			RtmpOSNetDevDetach(dev_p);
 			pAd->ApCfg.MBSSID[MAIN_MBSSID].MSSIDDev = NULL;
 		}
+#ifdef APCLI_SUPPORT	
 		else if (pAd->flg_apcli_init)
 		{
 			OPSTATUS_CLEAR_FLAG(pAd, fOP_AP_STATUS_MEDIA_STATE_CONNECTED);
@@ -533,7 +548,9 @@ VOID RTMP_CFG80211_VirtualIF_Remove(
 			pAd->ApCfg.ApCliTab[MAIN_MBSSID].dev = NULL;
 			
 		}
+#endif		
 		else /* Never Opened When New Netdevice on */
+#endif /* CONFIG_AP_SUPPORT */
 		{
 			RtmpOSNetDevDetach(dev_p);
 		}
@@ -615,12 +632,16 @@ int CFG80211_PacketSend(
 	{
 		case RT_CMD_80211_IFTYPE_AP:
 			minIdx = MIN_NET_DEVICE_FOR_CFG80211_VIF_AP;
+#if defined(P2P_SUPPORT) || defined(SOFTAP_SUPPORT )
 			RTMP_SET_PACKET_OPMODE(pPktSrc, OPMODE_AP);
+#endif /* P2P_SUPPORT */
 			break;
 
 		case RT_CMD_80211_IFTYPE_P2P_GO:;
 			minIdx = MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO;
+#ifdef P2P_SUPPORT
 			RTMP_SET_PACKET_OPMODE(pPktSrc, OPMODE_AP);
+#endif /* P2P_SUPPORT */
 			break;	
 
 		case RT_CMD_80211_IFTYPE_P2P_CLIENT:
@@ -758,8 +779,26 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 	UINT preIfIndex = 0;
 	struct wireless_dev *pWdev;
 
-	if (pAd->flg_cfg_dummy_p2p_init != FALSE)
+	if (pAd->flg_cfg_dummy_p2p_init != FALSE) {
+		pWdev = pAd->dummy_p2p_net_dev->ieee80211_ptr;
+#if (KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE)
+		pWdev->iftype = RT_CMD_80211_IFTYPE_P2P_DEVICE;
+#else
+		pWdev->iftype = RT_CMD_80211_IFTYPE_P2P_CLIENT;
+#endif /* LINUX_VERSION_CODE 3.7.0 */
+		/* interface_modes move from IF open to init */
+#if (KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE)
+		pWdev->wiphy->interface_modes |= (BIT(NL80211_IFTYPE_P2P_CLIENT)
+				| BIT(NL80211_IFTYPE_P2P_GO));
+		pWdev->wiphy->software_iftypes |= BIT(NL80211_IFTYPE_P2P_DEVICE);
+#endif /* LINUX_VERSION_CODE 3.7.0 */
+#if (KERNEL_VERSION(3, 0, 0) <= LINUX_VERSION_CODE)
+		pWdev->wiphy->iface_combinations = p_ra_iface_combinations_p2p;
+		pWdev->wiphy->n_iface_combinations = ra_iface_combinations_p2p_num;
+#endif /* LINUX_VERSION_CODE 3.0.0 */
+		DBGPRINT(RT_DEBUG_TRACE, ("%s dummy p2p existed\n", __func__));
 		return;
+	}
 	
 	pNetDevOps=&netDevHook;
 
@@ -838,6 +877,24 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 	RtmpOSNetDevAttach(pAd->OpMode, new_dev_p, pNetDevOps); 
 	pAd->dummy_p2p_net_dev = new_dev_p;
 	pAd->flg_cfg_dummy_p2p_init = TRUE;	
+}
+
+VOID RTMP_CFG80211_DummyP2pIf_Finalize(
+	IN VOID			*pAdSrc)
+{
+	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER) pAdSrc;
+	PNET_DEV pNetDev = NULL;
+	struct net_device_ops *pNetDevOps = NULL;
+
+	DBGPRINT(RT_DEBUG_WARN, ("%s\n", __func__));
+
+	if (!pAd->flg_cfg_dummy_p2p_init)
+		return;
+
+	pNetDev = pAd->dummy_p2p_net_dev;
+	pNetDevOps = (struct net_device_ops *) pNetDev->netdev_ops;
+	if (pNetDevOps && pNetDevOps->ndo_stop)
+		pNetDevOps->ndo_stop(pNetDev);
 }
 
 #endif /* RT_CFG80211_SUPPORT */
