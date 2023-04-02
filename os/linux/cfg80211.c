@@ -2475,7 +2475,7 @@ static int CFG80211_OpsStartAp(
 	memset(&bcn, 0, sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
 	MAC80211_PAD_GET(pAd, pWiphy);
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
-
+#ifdef DBG
 	if (RTDebugLevel > RT_DEBUG_TRACE) {
 		hex_dump("Beacon head", (UCHAR *)(settings->beacon.head),
 			settings->beacon.head_len);
@@ -2494,7 +2494,7 @@ static int CFG80211_OpsStartAp(
 		CFG80211DBG(RT_DEBUG_TRACE, ("80211>interval = %d\n",
 				settings->beacon_interval));
 	}
-
+#endif
 	if (settings->beacon.head_len > 0) {
 		os_alloc_mem(NULL,
 			     &beacon_head_buf,
@@ -2631,7 +2631,7 @@ static int CFG80211_OpsChangeBeacon(
 	memset(&bcn, 0, sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __func__));
 	MAC80211_PAD_GET(pAd, pWiphy);
-
+#ifdef DBG
 	if (RTDebugLevel > RT_DEBUG_TRACE) {
 		hex_dump("Beacon head", (UCHAR *)(info->head),
 			info->head_len);
@@ -2646,7 +2646,7 @@ static int CFG80211_OpsChangeBeacon(
 		hex_dump("probe_resp", (UCHAR *)(info->probe_resp),
 			info->probe_resp_len);
 	}
-
+#endif
 
 	if (info->head_len > 0) {
 		os_alloc_mem(NULL,
