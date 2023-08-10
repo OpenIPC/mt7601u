@@ -705,7 +705,11 @@ Note:
 		return -ENETDOWN;
 	} /* End of if */
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
 	if (RTMP_DRIVER_80211_SCAN(pAd) != NDIS_STATUS_SUCCESS) {
+#else
+	if (RTMP_DRIVER_80211_SCAN(pAd, pNdev->ieee80211_ptr->iftype) != NDIS_STATUS_SUCCESS) {
+#endif
 		CFG80211DBG(RT_DEBUG_ERROR, ("\n80211> BUSY - SCANNING\n"));
 		CFG80211OS_ScanEnd(pCfg80211_CB, TRUE);
 		return -EAGAIN;
